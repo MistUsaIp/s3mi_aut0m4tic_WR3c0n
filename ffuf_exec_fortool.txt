@@ -1,0 +1,24 @@
+ffuf -u https://www.gslb.verisign.com/FUZZ -w ~/wordlists/param-miner/resources/words -mc all -fw 2
+ffuf -u "https://a-root-servers-org.gslb.verisign.com/FUZZ" -w ~/wordlists/assetnote/wlist2.txt -mc all -fc 404
+ffuf -u https://mem-lab.corparch.verisign.com/FUZZ -w ~/wordlists/asset_note/directories.txt -mc all -fc 404,400
+ffuf -u https://ote-login-otp.verisign.com/FUZZ -w ~/wordlists/param-miner/resources/words -mc all -fc 404
+ffuf -u https://rirs.gslb.verisign.com/FUZZ -w ~/wordlists/param-miner/resources/words -mc all -fc 404
+ffuf -u https://smetrics.verisign.com/FUZZ -w <(cat ~/wordlists/avan_wordlists/0to3chars.txt ~/wordlists/param-miner/resources/words ~/wordlists/fuzz4bounty/fuzz4bounty/fuzz4bounty.txt | sort -u) -mc all -fc 404
+
+ffuf -u https://ote-cube.verisign.com/FUZZ -w <(cat ~/wordlists/param-miner/resources/words ~/wordlists/fuzz4bounty/fuzz4bounty/fuzz4bounty.txt ~/wordlists/avan_wordlists/0to3chars.txt ~/wordlists/SecLists/Discovery/Web-Content/raft-large-directories-lowercase.txt ~/wordlists/asset_note/directories.txt ~/wordlists/avan_wordlists/Directories_All.wordlist | sort -u ) -mc all -fc 404,400
+
+ffuf -u "http://onsitecrl.verisign.com/FUZZ" -w <(cat ~/wordlists/avan_wordlists/Directories_All.wordlist ~/wordlists/param-miner/resources/words ~/wordlists/asset_note/directories.txt | sort -u ) -mc all -fc 404 -fw 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,2 @@
+x8 -u https://example.com/client -w wordlist -X GET POST -o example_p.out
+x8 -u https://test.com/client -w wordlist -X GET POST -o test_p.out 

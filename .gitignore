@@ -1,0 +1,29 @@
+# Binaries
+watchtower
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Output files
+*.out
+*.test
+*.prof
+
+# Go coverage files
+*.out
+coverage.txt
+
+# Dependencies
+/vendor/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db 

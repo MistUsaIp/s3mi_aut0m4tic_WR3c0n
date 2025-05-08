@@ -1,0 +1,3 @@
+ffuf -u https://example.com/FUZZ -w wordlist -o example_f.out
+ffuf -u https://test.com/FUZZ -w wordlist -o test_f.out
+ffuf -u https://demo.com/FUZZ -w wordlist -o demo_f.out 

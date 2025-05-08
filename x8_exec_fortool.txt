@@ -1,0 +1,25 @@
+x8 -u "https://a-root-servers-org.gslb.verisign.com/healthcheck" -w ~/wordlists/avan_wordlists/0to3chars.txt         //combine 0to3 with params from param miner
+
+x8 -u "https://a-root-servers-org.gslb.verisign.com/health" -w ~/wordlists/avan_wordlists/0to3chars.txt 
+
+x8 -u "https://rirs.gslb.verisign.com/account" -w <(cat ~/wordlists/avan_wordlists/0to3chars.txt ~/wordlists/param-miner/resources/params | sort -u)
+
+x8 -u "https://rirs.gslb.verisign.com/checkin" -w <(cat ~/wordlists/avan_wordlists/0to3chars.txt ~/wordlists/param-miner/resources/words ~/wordlists/param-miner/resources/params ~/wordlists/fuzz4bounty/fuzz4bounty/fuzz4bounty.txt | sort -u)
+
+x8 -u "https://rirs.gslb.verisign.com/process_login" -w ~/wordlists/asset_note/params.txt
+
+x8 -u "https://smetrics.verisign.com/_check" -w <(cat ~/wordlists/avan_wordlists/0to3chars.txt ~/wordlists/param-miner/resources/params ~/wordlists/param-miner/resources/words ~/wordlists/fuzz4bounty/fuzz4bounty/fuzz4bounty.txt | sort -u)
+
+x8 -u "https://rirs.gslb.verisign.com/status" -w <(cat ~/wordlists/avan_wordlists/0to3chars.txt ~/wordlists/param-miner/resources/words ~/wordlists/param-miner/resources/params ~/wordlists/fuzz4bounty/fuzz4bounty/fuzz4bounty.txt | sort -u)
+
+x8 -u "https://smetrics.verisign.com/optout" -w <(cat ~/wordlists/param-miner/resources/words ~/wordlists/param-miner/resources/params ~/wordlists/fuzz4bounty/fuzz4bounty/fuzz4bounty.txt ~/wordlists/avan_wordlists/0to3chars.txt | sort -u)
+
+x8 -u https://smetrics.verisign.com/id -w <(cat ~/wordlists/asset_note/params.txt ~/wordlists/avan_wordlists/0to3chars.txt ~/wordlists/param-miner/resources/words ~/wordlists/param-miner/resources/params | sort -u)
+
+x8 -u https://smetrics.verisign.com/live -w <(cat ~/wordlists/asset_note/params.txt ~/wordlists/avan_wordlists/0to3chars.txt ~/wordlists/param-miner/resources/words ~/wordlists/param-miner/resources/params | sort -u | grep -E '^[a-zA-Z0-9_]+$')
+
+x8 -u https://smetrics.verisign.com/va -w <(cat ~/wordlists/asset_note/params.txt ~/wordlists/avan_wordlists/0to3chars.txt ~/wordlists/param-miner/resources/words ~/wordlists/param-miner/resources/params | sort -u | grep -E '^[a-zA-Z0-9_]+$')
+
+x8 -u https://smetrics.verisign.com/ee -w <(cat ~/wordlists/asset_note/params.txt ~/wordlists/avan_wordlists/0to3chars.txt ~/wordlists/param-miner/resources/words ~/wordlists/param-miner/resources/params | sort -u)
+
+x8 -u "https://ote-cube.verisign.com/index.html" -w <(cat ~/wordlists/param-miner/resources/words ~/wordlists/param-miner/resources/params ~/wordlists/avan_wordlists/arjun_samlist_param.txt ~/wordlists/avan_wordlists/0to3chars.txt ~/wordlists/fuzz4bounty/fuzz4bounty/fuzz4bounty.txt | sort -u )
