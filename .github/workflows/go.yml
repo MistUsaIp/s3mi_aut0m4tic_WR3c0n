@@ -1,0 +1,50 @@
+name: executing Wr3c0n
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    # Runs at 3:00 AM UTC every day 
+    - cron: '0 */5 * * *'
+
+
+jobs:
+  install-tools:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.21
+        
+ 
+    - name: executeing R3c0n
+      env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+      run: |
+          curl -s https://wordlists-cdn.assetnote.io/data/automated/httparchive_parameters_top_1m_2024_05_28.txt > params.wl
+          curl -s https://raw.githubusercontent.com/PortSwigger/param-miner/refs/heads/master/resources/words > words.txt
+          curl -s https://wordlists-cdn.assetnote.io/data/automated/httparchive_directories_1m_2024_05_28.txt > directories.txt
+          cat words.txt directories.txt | sort -u > fuzz.wl
+          ls
+          
+          
+    - name: Commit and push changes
+      run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          if [[ -n $(git status --porcelain) ]]; then                                
+              git add .
+              git commit -m 'Update modified files'
+              git push
+          else
+              echo "No changes to commit"
+          fi                                          #if is for checking if the script has any result for changing or not 
+      env:
+          GITHUB_TOKEN: ${{ secrets.ACTION_DEPLOY_KEY }}
