@@ -28,6 +28,11 @@ jobs:
       env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
       run: |
+          go install github.com/ffuf/ffuf/v2@latest
+          git clone https://github.com/Sh1Yo/x8
+          cd x8
+          docker build -t x8 .
+          ls
           curl -s https://wordlists-cdn.assetnote.io/data/automated/httparchive_parameters_top_1m_2024_05_28.txt > params.wl
           curl -s https://raw.githubusercontent.com/PortSwigger/param-miner/refs/heads/master/resources/words > words.txt
           curl -s https://wordlists-cdn.assetnote.io/data/automated/httparchive_directories_1m_2024_05_28.txt > directories.txt
