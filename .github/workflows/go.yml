@@ -32,8 +32,8 @@ jobs:
           curl -s https://raw.githubusercontent.com/PortSwigger/param-miner/refs/heads/master/resources/words > words.txt
           curl -s https://wordlists-cdn.assetnote.io/data/automated/httparchive_directories_1m_2024_05_28.txt > directories.txt
           cat words.txt directories.txt | sort -u > fuzz.wl
-          go build -o watchtower cmd/watchtower/main.go
-          ./watchtower --ffuf-cmds=ffuf_exec_fortool.txt --x8-cmds=x8_exec_fortool.txt --discord-webhook=${{ secrets.DISCORD_TOKEN }} --verbose
+          go install github.com/avanguard/watchtower/cmd/watchtower@latest
+          watchtower --ffuf-cmds=ffuf_exec_fortool.txt --x8-cmds=x8_exec_fortool.txt --discord-webhook=${{ secrets.DISCORD_TOKEN }} --verbose
           ls
           
           
