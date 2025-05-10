@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -24,6 +25,11 @@ type CommandExecutor struct {
 func NewCommandExecutor(logger *logrus.Logger) *CommandExecutor {
 	// Set fixed number of workers to 5 for parallel execution
 	maxWorkers := 5
+
+	// Create res_files directory if it doesn't exist
+	if err := os.MkdirAll("res_files", 0755); err != nil {
+		logger.Errorf("Failed to create res_files directory: %v", err)
+	}
 
 	return &CommandExecutor{
 		logger:     logger,
@@ -123,8 +129,21 @@ func (e *CommandExecutor) ExecuteCommand(ctx context.Context, cmd *models.Comman
 	startTime := time.Now()
 	e.logger.Infof("Executing command: %s", cmd.Raw)
 
+	// Create a modified command that writes to res_files directory
+	modifiedCmd := cmd.Raw
+	if cmd.OutputFile != "" {
+		// Get the base filename
+		baseName := filepath.Base(cmd.OutputFile)
+		// Create new path in res_files directory
+		newOutputFile := filepath.Join("res_files", baseName)
+		// Replace the output file path in the command
+		modifiedCmd = strings.Replace(cmd.Raw, cmd.OutputFile, newOutputFile, 1)
+		// Update the command's output file path
+		cmd.OutputFile = newOutputFile
+	}
+
 	// Execute command using bash
-	execCmd := exec.CommandContext(ctx, "bash", "-c", cmd.Raw)
+	execCmd := exec.CommandContext(ctx, "bash", "-c", modifiedCmd)
 	var stderr, stdout bytes.Buffer
 	execCmd.Stderr = &stderr
 	execCmd.Stdout = &stdout
