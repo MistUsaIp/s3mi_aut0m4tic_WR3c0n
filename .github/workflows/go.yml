@@ -37,7 +37,7 @@ jobs:
           cat words.txt directories.txt | sort -u > fuzz.wl
           go build -o watchtower pkg/main/main.go
           cp watchtower ./../../
-          ./watchtower --ffuf-cmds=ffuf_exec_fortool.txt --x8-cmds=x8_exec_fortool.txt --discord-webhook=${{ secrets.DISCORD_TOKEN }} --verbose
+          ./watchtower --ffuf-cmds=ffuf_exec_fortool.txt --x8-cmds=x8_exec_fortool.txt --discord-webhook=${{ secrets.DISCORD_TOKEN }}
           ls
           
           
