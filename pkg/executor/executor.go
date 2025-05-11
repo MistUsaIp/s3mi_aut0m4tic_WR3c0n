@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +19,9 @@ import (
 type CommandExecutor struct {
 	logger     *logrus.Logger
 	maxWorkers int // Maximum number of concurrent workers
+	queue      chan *models.Command
+	results    chan *models.CommandResult
+	wg         sync.WaitGroup
 }
 
 // NewCommandExecutor creates a new CommandExecutor
@@ -25,9 +29,38 @@ func NewCommandExecutor(logger *logrus.Logger) *CommandExecutor {
 	// Set fixed number of workers to 5 for parallel execution
 	maxWorkers := 5
 
-	return &CommandExecutor{
+	// Create res_files directory if it doesn't exist
+	if err := os.MkdirAll("res_files", 0755); err != nil {
+		logger.Errorf("Failed to create res_files directory: %v", err)
+	}
+
+	executor := &CommandExecutor{
 		logger:     logger,
 		maxWorkers: maxWorkers,
+		queue:      make(chan *models.Command, 100), // Buffer size of 100 for the queue
+		results:    make(chan *models.CommandResult, 100),
+	}
+
+	// Start the worker pool
+	executor.startWorkers()
+
+	return executor
+}
+
+// startWorkers initializes the worker pool
+func (e *CommandExecutor) startWorkers() {
+	for i := 0; i < e.maxWorkers; i++ {
+		e.wg.Add(1)
+		go func(workerID int) {
+			defer e.wg.Done()
+			e.logger.Debugf("Worker %d started", workerID)
+
+			for cmd := range e.queue {
+				e.logger.Debugf("Worker %d processing command: %s", workerID, cmd.Raw)
+				result := e.ExecuteCommand(context.Background(), cmd)
+				e.results <- result
+			}
+		}(i)
 	}
 }
 
@@ -123,8 +156,21 @@ func (e *CommandExecutor) ExecuteCommand(ctx context.Context, cmd *models.Comman
 	startTime := time.Now()
 	e.logger.Infof("Executing command: %s", cmd.Raw)
 
+	// Create a modified command that writes to res_files directory
+	modifiedCmd := cmd.Raw
+	if cmd.OutputFile != "" {
+		// Get the base filename
+		baseName := filepath.Base(cmd.OutputFile)
+		// Create new path in res_files directory
+		newOutputFile := filepath.Join("res_files", baseName)
+		// Replace the output file path in the command
+		modifiedCmd = strings.Replace(cmd.Raw, cmd.OutputFile, newOutputFile, 1)
+		// Update the command's output file path
+		cmd.OutputFile = newOutputFile
+	}
+
 	// Execute command using bash
-	execCmd := exec.CommandContext(ctx, "bash", "-c", cmd.Raw)
+	execCmd := exec.CommandContext(ctx, "bash", "-c", modifiedCmd)
 	var stderr, stdout bytes.Buffer
 	execCmd.Stderr = &stderr
 	execCmd.Stdout = &stdout
@@ -188,20 +234,6 @@ func (e *CommandExecutor) ExecuteCommand(ctx context.Context, cmd *models.Comman
 	return result
 }
 
-// executeCommandGroup executes a group of commands sequentially
-func (e *CommandExecutor) executeCommandGroup(ctx context.Context, cmds []*models.Command, resultChan chan<- *models.CommandResult) {
-	for _, cmd := range cmds {
-		select {
-		case <-ctx.Done():
-			e.logger.Warn("Command execution cancelled")
-			return
-		default:
-			result := e.ExecuteCommand(ctx, cmd)
-			resultChan <- result
-		}
-	}
-}
-
 // ExecuteGroupedCommands executes commands grouped by URL to avoid conflicts
 func (e *CommandExecutor) ExecuteGroupedCommands(ctx context.Context, commands []*models.Command) []*models.CommandResult {
 	// Group commands by URL, with special handling for ffuf commands
@@ -236,43 +268,35 @@ func (e *CommandExecutor) ExecuteGroupedCommands(ctx context.Context, commands [
 
 	e.logger.Infof("Grouped %d commands into %d URL groups for execution", len(commands), len(urlGroups))
 
-	// Create a channel for command groups
-	urlGroupChan := make(chan []*models.Command, len(urlGroups))
-	resultChan := make(chan *models.CommandResult, len(commands))
-
-	// Start worker pool with fixed number of workers (5)
-	workerCount := e.maxWorkers
-	e.logger.Debugf("Starting %d workers for parallel execution", workerCount)
-
-	// Start worker goroutines
-	var wg sync.WaitGroup
-	for i := 0; i < workerCount; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for cmdGroup := range urlGroupChan {
-				e.executeCommandGroup(ctx, cmdGroup, resultChan)
-			}
-		}()
-	}
-
-	// Send command groups to workers
+	// Send commands to the queue
 	for _, cmdGroup := range urlGroups {
-		urlGroupChan <- cmdGroup
+		for _, cmd := range cmdGroup {
+			select {
+			case e.queue <- cmd:
+				e.logger.Debugf("Added command to queue: %s", cmd.Raw)
+			case <-ctx.Done():
+				e.logger.Warn("Context cancelled while adding commands to queue")
+				return nil
+			}
+		}
 	}
-	close(urlGroupChan)
 
-	// Start a goroutine to close the result channel when all workers are done
-	go func() {
-		wg.Wait()
-		close(resultChan)
-	}()
+	// Close the queue to signal no more commands will be added
+	close(e.queue)
 
 	// Collect results
 	var results []*models.CommandResult
-	for result := range resultChan {
+	for result := range e.results {
 		results = append(results, result)
 	}
+
+	// Wait for all workers to finish
+	e.wg.Wait()
+
+	// Create new channels for the next execution
+	e.queue = make(chan *models.Command, 100)
+	e.results = make(chan *models.CommandResult, 100)
+	e.startWorkers()
 
 	return results
 }

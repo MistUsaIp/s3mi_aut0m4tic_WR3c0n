@@ -1,0 +1,35 @@
+ffuf -u https://www.gslb.verisign.com/FUZZ -w fuzz.wl -mc all -fc 404,400,403 -fw 2
+ffuf -u "https://a-root-servers-org.gslb.verisign.com/FUZZ" -w fuzz.wl -mc all -fc 404,400,403
+ffuf -u https://mem-lab.corparch.verisign.com/FUZZ -w fuzz.wl -mc all -fc 404,400,403
+ffuf -u https://ote-login-otp.verisign.com/FUZZ -w fuzz.wl -mc all -fc 404,400,403
+ffuf -u https://rirs.gslb.verisign.com/FUZZ -w fuzz.wl -mc all -fc 404,400,403
+ffuf -u https://smetrics.verisign.com/FUZZ -w fuzz.wl -mc all -fc 404,400,403
+ffuf -u https://ote-cube.verisign.com/FUZZ -w fuzz.wl -mc all -fc 404,400,403
+ffuf -u "http://onsitecrl.verisign.com/FUZZ" -w fuzz.wl -mc all -fc 404,400,403 -fw 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

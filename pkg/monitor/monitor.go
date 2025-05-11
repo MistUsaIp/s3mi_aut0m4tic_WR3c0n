@@ -16,12 +16,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Monitor handles periodic command execution and monitoring
+// Monitor handles command execution and monitoring
 type Monitor struct {
 	executor     *executor.CommandExecutor
 	notifier     *notifier.DiscordNotifier
 	logger       *logrus.Logger
-	interval     time.Duration
 	ffufCommands []*models.Command
 	x8Commands   []*models.Command
 	stopChan     chan struct{}
@@ -34,7 +33,6 @@ type MonitorOptions struct {
 	FFufCommandsFile string
 	X8CommandsFile   string
 	DiscordWebhook   string
-	Interval         time.Duration
 	Mode             string
 	Monitoring       bool
 }
@@ -54,7 +52,6 @@ func NewMonitor(opts MonitorOptions, logger *logrus.Logger) (*Monitor, error) {
 		executor:   execInst,
 		notifier:   notifyInst,
 		logger:     logger,
-		interval:   opts.Interval,
 		stopChan:   make(chan struct{}),
 		mode:       opts.Mode,
 		monitoring: opts.Monitoring,
@@ -109,27 +106,19 @@ func (m *Monitor) Start() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// Start the command execution ticker
-	ticker := time.NewTicker(m.interval)
-	defer ticker.Stop()
-
-	m.logger.Infof("Starting WatchTower monitor in %s mode, checking every %v", m.mode, m.interval)
+	m.logger.Infof("Starting WatchTower monitor in %s mode", m.mode)
 	m.logger.Infof("Loaded %d ffuf commands and %d x8 commands", len(m.ffufCommands), len(m.x8Commands))
 
-	// Immediately run the first iteration before waiting for the ticker
+	// Start continuous command execution
 	go m.executeCommands()
 
-	for {
-		select {
-		case <-ticker.C:
-			go m.executeCommands()
-		case <-sigChan:
-			m.logger.Info("Received termination signal, shutting down...")
-			close(m.stopChan)
-			return
-		case <-m.stopChan:
-			return
-		}
+	// Wait for termination signal
+	select {
+	case <-sigChan:
+		m.logger.Info("Received termination signal, shutting down...")
+		close(m.stopChan)
+	case <-m.stopChan:
+		return
 	}
 }
 
@@ -142,7 +131,7 @@ func (m *Monitor) Stop() {
 func (m *Monitor) executeCommands() {
 	m.logger.Info("Starting command execution cycle")
 
-	ctx, cancel := context.WithTimeout(context.Background(), m.interval-5*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Combine all commands
@@ -181,9 +170,8 @@ while true; do
     echo "------------------------"
     echo "Command completed at: $(date)"
     echo "========================"
-    echo "Waiting %d seconds until next run..."
-    sleep %d
-done`, cmd.Raw, cmd.Raw, int(m.interval.Seconds()), int(m.interval.Seconds()))
+    # No sleep here - continuous execution
+done`, cmd.Raw, cmd.Raw)
 
 			// Create a temporary script file
 			scriptFile := fmt.Sprintf("/tmp/watchtower_monitor_%d.sh", time.Now().UnixNano())

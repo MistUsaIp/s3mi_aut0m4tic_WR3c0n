@@ -1,0 +1,25 @@
+x8 -u "https://a-root-servers-org.gslb.verisign.com/healthcheck" -w params.wl --reflected-only
+
+x8 -u "https://a-root-servers-org.gslb.verisign.com/health" -w params.wl --reflected-only
+
+x8 -u "https://rirs.gslb.verisign.com/account" -w params.wl --reflected-only
+
+x8 -u "https://rirs.gslb.verisign.com/checkin" -w params.wl --reflected-only
+
+x8 -u "https://rirs.gslb.verisign.com/process_login" -w params.wl --reflected-only
+
+x8 -u "https://smetrics.verisign.com/_check" -w params.wl --reflected-only
+
+x8 -u "https://rirs.gslb.verisign.com/status" -w params.wl --reflected-only
+
+x8 -u "https://smetrics.verisign.com/optout" -w params.wl --reflected-only
+
+x8 -u https://smetrics.verisign.com/id -w params.wl --reflected-only
+
+x8 -u https://smetrics.verisign.com/live -w params.wl --reflected-only
+
+x8 -u https://smetrics.verisign.com/va -w params.wl --reflected-only
+
+x8 -u https://smetrics.verisign.com/ee -w params.wl --reflected-only
+
+x8 -u "https://ote-cube.verisign.com/index.html" -w params.wl --reflected-only

@@ -1,4 +1,4 @@
-x8 -u "https://a-root-servers-org.gslb.verisign.com/healthcheck" -w ~/wordlists/avan_wordlists/0to3chars.txt         //combine 0to3 with params from param miner
+x8 -u "https://a-root-servers-org.gslb.verisign.com/healthcheck" -w ~/wordlists/avan_wordlists/0to3chars.txt        
 
 x8 -u "https://a-root-servers-org.gslb.verisign.com/health" -w ~/wordlists/avan_wordlists/0to3chars.txt 
 

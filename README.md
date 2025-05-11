@@ -13,6 +13,7 @@ WatchTower is a Golang CLI tool for periodic monitoring of reconnaissance comman
 - Discord webhooks for alerting when changes are detected
 - Modular design for easy extension
 - Real-time monitoring in separate terminal windows for each command
+- Automatic storage of result files in a dedicated directory
 
 ## Installation
 
@@ -66,9 +67,17 @@ x8 -u https://site2.com/client -w wordlist -X GET POST -o site2_p.out
 1. WatchTower reads the command files and extracts the URLs and output file paths
 2. It groups commands by their target URLs to avoid concurrent execution of commands targeting the same URL
 3. Commands are executed periodically at the specified interval
-4. After each execution, the output is compared with the previous result
-5. If changes are detected, an alert is sent to the specified Discord webhook with the detailed differences
-6. When monitoring is enabled, each command runs in its own terminal window showing real-time execution details
+4. All output files are stored in the `res_files` directory for easy management
+5. After each execution, the output is compared with the previous result
+6. If changes are detected, an alert is sent to the specified Discord webhook with the detailed differences
+7. When monitoring is enabled, each command runs in its own terminal window showing real-time execution details
+
+## File Organization
+
+- Command output files are automatically stored in the `res_files` directory
+- The directory is created automatically if it doesn't exist
+- Original filenames are preserved but stored in the centralized location
+- This makes it easier to manage and track all output files in one place
 
 ## License
 
