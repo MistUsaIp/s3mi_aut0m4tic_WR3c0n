@@ -17,18 +17,18 @@ import (
 
 // CommandExecutor handles execution of commands
 type CommandExecutor struct {
-	logger     *logrus.Logger
-	maxWorkers int // Maximum number of concurrent workers
-	queue      chan *models.Command
-	results    chan *models.CommandResult
-	wg         sync.WaitGroup
+	logger              *logrus.Logger
+	maxWorkers          int // Maximum number of concurrent workers
+	queue               chan *models.Command
+	results             chan *models.CommandResult
+	wg                  sync.WaitGroup
+	activeCommands      int32      // Counter for currently running commands
+	mu                  sync.Mutex // Mutex for thread-safe updates to activeCommands
+	commandDoneCallback func()     // Callback that's triggered when a command completes
 }
 
 // NewCommandExecutor creates a new CommandExecutor
-func NewCommandExecutor(logger *logrus.Logger) *CommandExecutor {
-	// Set fixed number of workers to 5 for parallel execution
-	maxWorkers := 5
-
+func NewCommandExecutor(logger *logrus.Logger, maxWorkers int) *CommandExecutor {
 	// Create res_files directory if it doesn't exist
 	if err := os.MkdirAll("res_files", 0755); err != nil {
 		logger.Errorf("Failed to create res_files directory: %v", err)
@@ -45,6 +45,41 @@ func NewCommandExecutor(logger *logrus.Logger) *CommandExecutor {
 	executor.startWorkers()
 
 	return executor
+}
+
+// SetCommandDoneCallback sets a callback function that will be called when a command completes
+func (e *CommandExecutor) SetCommandDoneCallback(callback func()) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.commandDoneCallback = callback
+}
+
+// incrementActiveCommands safely increases the active commands counter
+func (e *CommandExecutor) incrementActiveCommands() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.activeCommands++
+	e.logger.Infof("Command started. Active commands: %d/%d", e.activeCommands, e.maxWorkers)
+}
+
+// decrementActiveCommands safely decreases the active commands counter
+func (e *CommandExecutor) decrementActiveCommands() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.activeCommands--
+	e.logger.Infof("Command completed. Active commands: %d/%d", e.activeCommands, e.maxWorkers)
+
+	// Trigger callback if set
+	if e.commandDoneCallback != nil {
+		e.commandDoneCallback()
+	}
+}
+
+// GetActiveCommandCount returns the current number of running commands
+func (e *CommandExecutor) GetActiveCommandCount() int {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return int(e.activeCommands)
 }
 
 // startWorkers initializes the worker pool
@@ -153,6 +188,11 @@ func (e *CommandExecutor) calculateDifferences(oldOutput, newOutput []byte) stri
 
 // ExecuteCommand runs a shell command and returns its result
 func (e *CommandExecutor) ExecuteCommand(ctx context.Context, cmd *models.Command) *models.CommandResult {
+	// Increment the active commands counter
+	e.incrementActiveCommands()
+	// Ensure we decrement the counter when done
+	defer e.decrementActiveCommands()
+
 	startTime := time.Now()
 	e.logger.Infof("Executing command: %s", cmd.Raw)
 
@@ -267,15 +307,31 @@ func (e *CommandExecutor) ExecuteGroupedCommands(ctx context.Context, commands [
 	}
 
 	e.logger.Infof("Grouped %d commands into %d URL groups for execution", len(commands), len(urlGroups))
+	e.logger.Infof("Starting execution with %d parallel workers", e.maxWorkers)
 
-	// Send commands to the queue
+	// Create a channel to control parallel execution
+	parallelChan := make(chan struct{}, e.maxWorkers)
+
+	// Send commands to the queue with parallel execution control
 	for _, cmdGroup := range urlGroups {
 		for _, cmd := range cmdGroup {
 			select {
-			case e.queue <- cmd:
-				e.logger.Debugf("Added command to queue: %s", cmd.Raw)
+			case parallelChan <- struct{}{}: // Acquire a parallel execution slot
+				select {
+				case e.queue <- cmd:
+					e.logger.Debugf("Added command to queue: %s", cmd.Raw)
+					// Release the parallel execution slot after command completes
+					go func() {
+						<-e.results    // Wait for the command to complete
+						<-parallelChan // Release the slot
+					}()
+				case <-ctx.Done():
+					<-parallelChan // Release the slot if context is cancelled
+					e.logger.Warn("Context cancelled while adding commands to queue")
+					return nil
+				}
 			case <-ctx.Done():
-				e.logger.Warn("Context cancelled while adding commands to queue")
+				e.logger.Warn("Context cancelled while waiting for parallel execution slot")
 				return nil
 			}
 		}

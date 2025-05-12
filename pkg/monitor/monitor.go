@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -18,14 +19,19 @@ import (
 
 // Monitor handles command execution and monitoring
 type Monitor struct {
-	executor     *executor.CommandExecutor
-	notifier     *notifier.DiscordNotifier
-	logger       *logrus.Logger
-	ffufCommands []*models.Command
-	x8Commands   []*models.Command
-	stopChan     chan struct{}
-	mode         string
-	monitoring   bool
+	executor          *executor.CommandExecutor
+	notifier          *notifier.DiscordNotifier
+	logger            *logrus.Logger
+	ffufCommands      []*models.Command
+	x8Commands        []*models.Command
+	stopChan          chan struct{}
+	mode              string
+	monitoring        bool
+	threads           int
+	statusChan        chan struct{}
+	mu                sync.Mutex
+	completedCommands int
+	remainingCommands int
 }
 
 // MonitorOptions contains configuration options for the Monitor
@@ -35,12 +41,13 @@ type MonitorOptions struct {
 	DiscordWebhook   string
 	Mode             string
 	Monitoring       bool
+	Threads          int
 }
 
 // NewMonitor creates a new Monitor instance
 func NewMonitor(opts MonitorOptions, logger *logrus.Logger) (*Monitor, error) {
-	// Initialize the executor
-	execInst := executor.NewCommandExecutor(logger)
+	// Initialize the executor with specified number of threads
+	execInst := executor.NewCommandExecutor(logger, opts.Threads)
 
 	// Initialize the notifier
 	var notifyInst *notifier.DiscordNotifier
@@ -55,7 +62,12 @@ func NewMonitor(opts MonitorOptions, logger *logrus.Logger) (*Monitor, error) {
 		stopChan:   make(chan struct{}),
 		mode:       opts.Mode,
 		monitoring: opts.Monitoring,
+		threads:    opts.Threads,
+		statusChan: make(chan struct{}, 100), // Buffer for status update signals
 	}
+
+	// Set the callback to be notified when commands complete
+	execInst.SetCommandDoneCallback(m.signalCommandCompletion)
 
 	// Load commands from files
 	if opts.FFufCommandsFile != "" {
@@ -73,6 +85,9 @@ func NewMonitor(opts MonitorOptions, logger *logrus.Logger) (*Monitor, error) {
 		}
 		m.x8Commands = x8Cmds
 	}
+
+	// Initialize command counters
+	m.remainingCommands = len(m.ffufCommands) + len(m.x8Commands)
 
 	return m, nil
 }
@@ -106,8 +121,11 @@ func (m *Monitor) Start() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	m.logger.Infof("Starting WatchTower monitor in %s mode", m.mode)
+	m.logger.Infof("Starting WatchTower monitor in %s mode with %d parallel threads", m.mode, m.threads)
 	m.logger.Infof("Loaded %d ffuf commands and %d x8 commands", len(m.ffufCommands), len(m.x8Commands))
+
+	// Start status reporter
+	go m.startStatusReporter()
 
 	// Start continuous command execution
 	go m.executeCommands()
@@ -119,6 +137,45 @@ func (m *Monitor) Start() {
 		close(m.stopChan)
 	case <-m.stopChan:
 		return
+	}
+}
+
+// startStatusReporter periodically reports the status of active commands
+func (m *Monitor) startStatusReporter() {
+	for {
+		select {
+		case <-m.statusChan:
+			// Update and display status when a command completes
+			m.mu.Lock()
+			m.completedCommands++
+			m.remainingCommands--
+			activeCount := m.executor.GetActiveCommandCount()
+			completed := m.completedCommands
+			remaining := m.remainingCommands
+			m.mu.Unlock()
+
+			totalCommands := len(m.ffufCommands) + len(m.x8Commands)
+			fmt.Printf("\n=== Command Execution Status ===\n")
+			fmt.Printf("Active commands: %d/%d\n", activeCount, m.threads)
+			fmt.Printf("Completed commands: %d\n", completed)
+			fmt.Printf("Remaining commands: %d\n", remaining)
+			fmt.Printf("Total commands: %d\n", totalCommands)
+			fmt.Printf("Thread utilization: %.1f%%\n", float64(activeCount)/float64(m.threads)*100)
+			fmt.Printf("Progress: %.1f%%\n", float64(completed)/float64(totalCommands)*100)
+			fmt.Printf("==============================\n\n")
+		case <-m.stopChan:
+			return
+		}
+	}
+}
+
+// signalCommandCompletion notifies the status reporter that a command has completed
+func (m *Monitor) signalCommandCompletion() {
+	select {
+	case m.statusChan <- struct{}{}:
+		// Signal sent
+	default:
+		// Channel buffer is full, non-blocking
 	}
 }
 
@@ -140,7 +197,7 @@ func (m *Monitor) executeCommands() {
 	// If monitoring is enabled, open separate terminals for each command
 	if m.monitoring {
 		// Create a channel to control parallel execution
-		parallelChan := make(chan struct{}, 5) // Allow 5 parallel executions
+		parallelChan := make(chan struct{}, m.threads) // Use specified number of threads
 
 		for _, cmd := range allCommands {
 			// Create a monitoring script for this command
