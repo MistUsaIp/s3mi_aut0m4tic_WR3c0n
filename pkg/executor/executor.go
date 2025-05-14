@@ -3,10 +3,13 @@ package executor
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -105,6 +108,161 @@ func (e *CommandExecutor) calculateDifferences(oldOutput, newOutput []byte) stri
 		return "No previous output to compare with"
 	}
 
+	// Check if both outputs are valid JSON
+	var oldJSON, newJSON interface{}
+	isJSON := true
+
+	if err := json.Unmarshal(oldOutput, &oldJSON); err != nil {
+		isJSON = false
+	}
+
+	if err := json.Unmarshal(newOutput, &newJSON); err != nil {
+		isJSON = false
+	}
+
+	// If both are valid JSON, do a JSON-specific comparison
+	if isJSON {
+		return e.compareJSON(oldJSON, newJSON)
+	}
+
+	// Fall back to text comparison for non-JSON content
+	return e.compareText(oldOutput, newOutput)
+}
+
+// compareJSON compares two JSON objects and returns differences in a readable format
+func (e *CommandExecutor) compareJSON(oldJSON, newJSON interface{}) string {
+	var diffBuilder strings.Builder
+
+	// Compare as maps if possible
+	oldMap, oldIsMap := oldJSON.(map[string]interface{})
+	newMap, newIsMap := newJSON.(map[string]interface{})
+
+	if oldIsMap && newIsMap {
+		// Find added and modified keys
+		addedKeys := []string{}
+		modifiedKeys := map[string]string{}
+
+		for key, newValue := range newMap {
+			oldValue, exists := oldMap[key]
+			if !exists {
+				// Key added in new JSON
+				addedKeys = append(addedKeys, key)
+			} else if !reflect.DeepEqual(oldValue, newValue) {
+				// Key exists but value changed
+				oldValueStr := fmt.Sprintf("%v", oldValue)
+				newValueStr := fmt.Sprintf("%v", newValue)
+				if len(oldValueStr) > 50 {
+					oldValueStr = oldValueStr[:47] + "..."
+				}
+				if len(newValueStr) > 50 {
+					newValueStr = newValueStr[:47] + "..."
+				}
+				modifiedKeys[key] = fmt.Sprintf("%s → %s", oldValueStr, newValueStr)
+			}
+		}
+
+		// Find deleted keys
+		deletedKeys := []string{}
+		for key := range oldMap {
+			if _, exists := newMap[key]; !exists {
+				deletedKeys = append(deletedKeys, key)
+			}
+		}
+
+		// Sort keys for consistent output
+		sort.Strings(addedKeys)
+		sort.Strings(deletedKeys)
+
+		// Build the difference report
+		if len(addedKeys) > 0 {
+			diffBuilder.WriteString("Added keys:\n")
+			for _, key := range addedKeys {
+				value := newMap[key]
+				valueStr := fmt.Sprintf("%v", value)
+				if len(valueStr) > 100 {
+					valueStr = valueStr[:97] + "..."
+				}
+				diffBuilder.WriteString(fmt.Sprintf("+ %s: %s\n", key, valueStr))
+			}
+		}
+
+		if len(modifiedKeys) > 0 {
+			if diffBuilder.Len() > 0 {
+				diffBuilder.WriteString("\n")
+			}
+			diffBuilder.WriteString("Modified keys:\n")
+
+			// Sort modified keys for consistent output
+			var keys []string
+			for k := range modifiedKeys {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+
+			for _, key := range keys {
+				diffBuilder.WriteString(fmt.Sprintf("* %s: %s\n", key, modifiedKeys[key]))
+			}
+		}
+
+		if len(deletedKeys) > 0 {
+			if diffBuilder.Len() > 0 {
+				diffBuilder.WriteString("\n")
+			}
+			diffBuilder.WriteString("Deleted keys:\n")
+			for _, key := range deletedKeys {
+				value := oldMap[key]
+				valueStr := fmt.Sprintf("%v", value)
+				if len(valueStr) > 100 {
+					valueStr = valueStr[:97] + "..."
+				}
+				diffBuilder.WriteString(fmt.Sprintf("- %s: %s\n", key, valueStr))
+			}
+		}
+
+		if diffBuilder.Len() == 0 {
+			return "JSON content changed but no specific key differences found"
+		}
+
+		return diffBuilder.String()
+	}
+
+	// Handle JSON arrays
+	oldArray, oldIsArray := oldJSON.([]interface{})
+	newArray, newIsArray := newJSON.([]interface{})
+
+	if oldIsArray && newIsArray {
+		diffBuilder.WriteString(fmt.Sprintf("Array length changed: %d → %d\n", len(oldArray), len(newArray)))
+
+		// Find added/removed elements in simple cases
+		if len(oldArray) < len(newArray) && len(oldArray) < 10 {
+			diffBuilder.WriteString("\nAdded elements:\n")
+			for i := len(oldArray); i < len(newArray) && i < 10+len(oldArray); i++ {
+				valueStr := fmt.Sprintf("%v", newArray[i])
+				if len(valueStr) > 100 {
+					valueStr = valueStr[:97] + "..."
+				}
+				diffBuilder.WriteString(fmt.Sprintf("+ [%d]: %s\n", i, valueStr))
+			}
+		} else if len(oldArray) > len(newArray) && len(newArray) < 10 {
+			diffBuilder.WriteString("\nRemoved elements:\n")
+			for i := len(newArray); i < len(oldArray) && i < 10+len(newArray); i++ {
+				valueStr := fmt.Sprintf("%v", oldArray[i])
+				if len(valueStr) > 100 {
+					valueStr = valueStr[:97] + "..."
+				}
+				diffBuilder.WriteString(fmt.Sprintf("- [%d]: %s\n", i, valueStr))
+			}
+		}
+
+		return diffBuilder.String()
+	}
+
+	// Different types or complex changes
+	return fmt.Sprintf("JSON structure changed completely.\nOld type: %T\nNew type: %T", oldJSON, newJSON)
+}
+
+// compareText compares two text outputs line by line (original implementation)
+func (e *CommandExecutor) compareText(oldOutput, newOutput []byte) string {
 	// Convert to strings and split by lines for comparison
 	oldLines := strings.Split(string(oldOutput), "\n")
 	newLines := strings.Split(string(newOutput), "\n")
@@ -196,17 +354,26 @@ func (e *CommandExecutor) ExecuteCommand(ctx context.Context, cmd *models.Comman
 	startTime := time.Now()
 	e.logger.Infof("Executing command: %s", cmd.Raw)
 
-	// Create a modified command that writes to res_files directory
-	modifiedCmd := cmd.Raw
-	if cmd.OutputFile != "" {
-		// Get the base filename
-		baseName := filepath.Base(cmd.OutputFile)
-		// Create new path in res_files directory
-		newOutputFile := filepath.Join("res_files", baseName)
-		// Replace the output file path in the command
-		modifiedCmd = strings.Replace(cmd.Raw, cmd.OutputFile, newOutputFile, 1)
-		// Update the command's output file path
-		cmd.OutputFile = newOutputFile
+	// Get the new and old file paths
+	newFilePath, oldFilePath := cmd.GetOutputFilePaths()
+
+	// Create directory for output files if it doesn't exist
+	if newFilePath != "" {
+		outputDir := filepath.Dir(newFilePath)
+		if err := os.MkdirAll(outputDir, 0755); err != nil {
+			e.logger.Errorf("Failed to create output directory %s: %v", outputDir, err)
+		} else {
+			e.logger.Debugf("Created or ensured output directory: %s", outputDir)
+		}
+	}
+
+	// Modify the command to include output flags
+	modifiedCmd := cmd.GetModifiedCommand()
+	e.logger.Debugf("Modified command: %s", modifiedCmd)
+
+	// Update the command's output file
+	if newFilePath != "" {
+		cmd.OutputFile = newFilePath
 	}
 
 	// Execute command using bash
@@ -229,41 +396,90 @@ func (e *CommandExecutor) ExecuteCommand(ctx context.Context, cmd *models.Comman
 		return result
 	}
 
-	// Try to read the output file if specified
+	// Read the new output file or use stdout if necessary
+	var output []byte
 	if cmd.OutputFile != "" {
-		output, err := os.ReadFile(cmd.OutputFile)
+		// Wait a moment to ensure file system has completed writing
+		time.Sleep(100 * time.Millisecond)
+
+		output, err = os.ReadFile(cmd.OutputFile)
 		if err != nil {
 			e.logger.Warnf("Could not read output file %s: %v", cmd.OutputFile, err)
-			// Still return the stdout as output
-			result.Output = stdout.Bytes()
+			// Use stdout as fallback
+			output = stdout.Bytes()
 		} else {
-			result.Output = output
+			e.logger.Debugf("Successfully read output file: %s (%d bytes)", cmd.OutputFile, len(output))
 		}
 	} else {
 		// If no output file, use stdout
-		result.Output = stdout.Bytes()
+		output = stdout.Bytes()
 	}
 
-	// Calculate hash of the output
+	// Ensure output is not empty
+	if len(output) == 0 {
+		e.logger.Warnf("Command produced empty output, using stdout as fallback")
+		output = stdout.Bytes()
+	}
+
+	result.Output = output
+
+	// Calculate hash of the new output
 	result.OutputHash = models.HashFile(result.Output)
+	e.logger.Debugf("Output hash: %s", result.OutputHash)
 
-	// Check if output has changed
-	if cmd.LastHash != "" && cmd.LastHash != result.OutputHash {
-		result.HasChanged = true
-		e.logger.Infof("Output changed for command: %s", cmd.Raw)
+	// Check if old file exists
+	var oldOutput []byte
+	var hasOldFile bool
+	if oldFilePath != "" {
+		oldOutput, err = os.ReadFile(oldFilePath)
+		hasOldFile = err == nil && len(oldOutput) > 0
+		if hasOldFile {
+			e.logger.Debugf("Found old file for comparison: %s (%d bytes)", oldFilePath, len(oldOutput))
+		} else {
+			e.logger.Debugf("No old file found or empty file at path: %s", oldFilePath)
+		}
+	}
 
-		// Calculate differences
-		result.Differences = e.calculateDifferences(cmd.LastOutput, result.Output)
+	// Check for changes and save old/new files
+	if hasOldFile {
+		oldHash := models.HashFile(oldOutput)
+		e.logger.Debugf("Old hash: %s, New hash: %s", oldHash, result.OutputHash)
 
-		// Display differences in terminal with clear formatting
-		fmt.Println("\n=== Changes Detected ===")
-		fmt.Printf("Command: %s\n", cmd.Raw)
-		fmt.Printf("Time: %s\n", time.Now().Format("2006-01-02 15:04:05"))
-		fmt.Println("\nDifferences:")
-		fmt.Println(result.Differences)
-		fmt.Println("=====================\n")
+		if oldHash != result.OutputHash {
+			result.HasChanged = true
+			e.logger.Infof("Changes detected for command: %s", cmd.Raw)
 
-		e.logger.Debugf("Differences: %s", result.Differences)
+			// Calculate differences
+			result.Differences = e.calculateDifferences(oldOutput, result.Output)
+
+			// Display differences in terminal
+			fmt.Println("\n=== Changes Detected ===")
+			fmt.Printf("Command: %s\n", cmd.Raw)
+			fmt.Printf("Time: %s\n", time.Now().Format("2006-01-02 15:04:05"))
+			fmt.Println("\nDifferences:")
+			fmt.Println(result.Differences)
+			fmt.Println("=====================\n")
+
+			e.logger.Debugf("Differences: %s", result.Differences)
+		} else {
+			e.logger.Debugf("No changes detected for command: %s", cmd.Raw)
+		}
+	} else {
+		// If this is the first run, we want to trigger a notification with the initial results
+		if len(result.Output) > 0 {
+			result.HasChanged = true
+			result.Differences = "Initial run - no previous data to compare with"
+			e.logger.Infof("First run for command: %s", cmd.Raw)
+		}
+	}
+
+	// Save the old file (copy new to old) for next comparison
+	if newFilePath != "" && len(result.Output) > 0 {
+		if err := os.WriteFile(oldFilePath, result.Output, 0644); err != nil {
+			e.logger.Errorf("Failed to save old file %s: %v", oldFilePath, err)
+		} else {
+			e.logger.Debugf("Saved old file for future comparison: %s (%d bytes)", oldFilePath, len(result.Output))
+		}
 	}
 
 	// Update command's last run info
@@ -312,47 +528,57 @@ func (e *CommandExecutor) ExecuteGroupedCommands(ctx context.Context, commands [
 	// Create a channel to control parallel execution
 	parallelChan := make(chan struct{}, e.maxWorkers)
 
+	// Track total commands for completion
+	totalCommands := len(commands)
+	processedCommands := 0
+	resultsChan := make(chan *models.CommandResult, totalCommands)
+
+	// Create a wait group to track all goroutines
+	var wg sync.WaitGroup
+
 	// Send commands to the queue with parallel execution control
 	for _, cmdGroup := range urlGroups {
 		for _, cmd := range cmdGroup {
-			select {
-			case parallelChan <- struct{}{}: // Acquire a parallel execution slot
+			wg.Add(1)
+			go func(cmd *models.Command) {
+				defer wg.Done()
+
+				// Acquire a slot
 				select {
-				case e.queue <- cmd:
-					e.logger.Debugf("Added command to queue: %s", cmd.Raw)
-					// Release the parallel execution slot after command completes
-					go func() {
-						<-e.results    // Wait for the command to complete
-						<-parallelChan // Release the slot
-					}()
+				case parallelChan <- struct{}{}:
+					// Slot acquired, continue
 				case <-ctx.Done():
-					<-parallelChan // Release the slot if context is cancelled
-					e.logger.Warn("Context cancelled while adding commands to queue")
-					return nil
+					e.logger.Warn("Context cancelled while waiting for slot")
+					return
 				}
-			case <-ctx.Done():
-				e.logger.Warn("Context cancelled while waiting for parallel execution slot")
-				return nil
-			}
+
+				// Execute the command
+				result := e.ExecuteCommand(ctx, cmd)
+
+				// Process result
+				resultsChan <- result
+
+				// Release the slot
+				<-parallelChan
+			}(cmd)
 		}
 	}
 
-	// Close the queue to signal no more commands will be added
-	close(e.queue)
+	// Start a goroutine to close results channel when all commands are processed
+	go func() {
+		wg.Wait()
+		close(resultsChan)
+		e.logger.Info("All commands have been processed, finalizing results")
+	}()
 
 	// Collect results
 	var results []*models.CommandResult
-	for result := range e.results {
+	for result := range resultsChan {
 		results = append(results, result)
+		processedCommands++
+		e.logger.Infof("Processed %d/%d commands", processedCommands, totalCommands)
 	}
 
-	// Wait for all workers to finish
-	e.wg.Wait()
-
-	// Create new channels for the next execution
-	e.queue = make(chan *models.Command, 100)
-	e.results = make(chan *models.CommandResult, 100)
-	e.startWorkers()
-
+	e.logger.Infof("Execution completed. Processed %d/%d commands", processedCommands, totalCommands)
 	return results
 }

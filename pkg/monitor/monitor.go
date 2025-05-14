@@ -193,6 +193,19 @@ func (m *Monitor) executeCommands() {
 
 	// Combine all commands
 	allCommands := append(m.ffufCommands, m.x8Commands...)
+	totalCommands := len(allCommands)
+
+	if totalCommands == 0 {
+		m.logger.Warn("No commands to execute")
+		return
+	}
+
+	m.logger.Infof("Preparing to execute %d commands", totalCommands)
+
+	// Create the main output directory if it doesn't exist
+	if err := os.MkdirAll("res_files", 0755); err != nil {
+		m.logger.Errorf("Failed to create main output directory: %v", err)
+	}
 
 	// If monitoring is enabled, open separate terminals for each command
 	if m.monitoring {
@@ -200,6 +213,13 @@ func (m *Monitor) executeCommands() {
 		parallelChan := make(chan struct{}, m.threads) // Use specified number of threads
 
 		for _, cmd := range allCommands {
+			// Get the output file paths for monitoring
+			newFilePath, _ := cmd.GetOutputFilePaths()
+			domainDisplay := cmd.Domain
+			if domainDisplay == "" {
+				domainDisplay = "unknown"
+			}
+
 			// Create a monitoring script for this command
 			scriptContent := fmt.Sprintf(`#!/bin/bash
 # Keep the terminal open even if the command fails
@@ -215,8 +235,9 @@ cleanup() {
 # Set up trap for cleanup
 trap cleanup EXIT
 
-echo "=== Monitoring Command ==="
+echo "=== Monitoring Command (%s - %s) ==="
 echo "Command: %s"
+echo "Output: %s"
 echo "Started at: $(date)"
 echo "========================"
 
@@ -226,9 +247,12 @@ while true; do
     %s
     echo "------------------------"
     echo "Command completed at: $(date)"
+    if [ -f "%s" ]; then
+        echo "Output saved to: %s"
+    fi
     echo "========================"
     # No sleep here - continuous execution
-done`, cmd.Raw, cmd.Raw)
+done`, cmd.CommandType, domainDisplay, cmd.Raw, newFilePath, cmd.GetModifiedCommand(), newFilePath, newFilePath)
 
 			// Create a temporary script file
 			scriptFile := fmt.Sprintf("/tmp/watchtower_monitor_%d.sh", time.Now().UnixNano())
@@ -265,14 +289,18 @@ done`, cmd.Raw, cmd.Raw)
 
 	// Execute commands in parallel, grouped by URL
 	results := m.executor.ExecuteGroupedCommands(ctx, allCommands)
+	m.logger.Infof("Received %d/%d results from command execution", len(results), totalCommands)
 
 	// Process results and send notifications for changes
 	for _, result := range results {
+		// Send notifications for changes
 		if result.HasChanged || result.Error != nil {
 			if m.notifier != nil {
 				err := m.notifier.SendAlert(result)
 				if err != nil {
 					m.logger.Errorf("Failed to send notification: %v", err)
+				} else {
+					m.logger.Infof("Sent notification for command: %s", result.Command.Raw)
 				}
 			}
 		}
@@ -282,4 +310,8 @@ done`, cmd.Raw, cmd.Raw)
 	}
 
 	m.logger.Info("Finished command execution cycle")
+
+	// Signal that all commands are done
+	m.logger.Info("All commands have been processed. Exiting.")
+	close(m.stopChan)
 }

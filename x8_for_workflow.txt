@@ -23,3 +23,5 @@ x8 -u https://smetrics.verisign.com/va -w params.wl --reflected-only
 x8 -u https://smetrics.verisign.com/ee -w params.wl --reflected-only
 
 x8 -u "https://ote-cube.verisign.com/index.html" -w params.wl --reflected-only
+
+x8 -u "https://smetrics.verisign.com/optout" -w params.wl --reflected-only
