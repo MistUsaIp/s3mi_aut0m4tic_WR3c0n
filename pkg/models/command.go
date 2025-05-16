@@ -19,6 +19,7 @@ type Command struct {
 	LastHash    string    // Hash of the last execution's output
 	LastOutput  []byte    // The output from the last execution
 	CommandType string    // Type of command (ffuf, x8, etc.)
+	ScanType    string    // Type of scan (endpoints, subdomains, etc.)
 }
 
 // Extract the URL from a command string
@@ -74,6 +75,39 @@ func (c *Command) DetermineCommandType() {
 	default:
 		c.CommandType = "other"
 	}
+}
+
+// DetermineScanType identifies the type of scan being performed
+func (c *Command) DetermineScanType() {
+	if c.CommandType == "" {
+		c.DetermineCommandType()
+	}
+
+	cmdLower := strings.ToLower(c.Raw)
+
+	switch c.CommandType {
+	case "ffuf":
+		if strings.Contains(cmdLower, "wordlist") || strings.Contains(cmdLower, "-w") {
+			if strings.Contains(cmdLower, "FUZZ") {
+				c.ScanType = "endpoints"
+				return
+			}
+			if strings.Contains(cmdLower, "HOST") {
+				c.ScanType = "subdomains"
+				return
+			}
+		}
+	case "x8":
+		if strings.Contains(cmdLower, "-X POST") || strings.Contains(cmdLower, "-X PUT") {
+			c.ScanType = "parameters"
+			return
+		}
+		c.ScanType = "endpoints"
+		return
+	}
+
+	// Default scan type
+	c.ScanType = "general"
 }
 
 // GetOutputFilePaths returns the paths for new and old output files
@@ -178,6 +212,7 @@ func NewCommand(rawCmd string) *Command {
 	cmd.ExtractURL()
 	cmd.ExtractOutputFile()
 	cmd.DetermineCommandType()
+	cmd.DetermineScanType()
 
 	return cmd
 }
@@ -199,6 +234,7 @@ type CommandResult struct {
 	HasChanged  bool
 	ExecutedAt  time.Time
 	Differences string // String representation of the differences between runs
+	StoragePath string // Path where the result is stored in the structured format
 }
 
 // String returns a readable string representation of the command result

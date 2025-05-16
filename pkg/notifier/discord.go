@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/avanguard/watchtower/pkg/models"
@@ -20,6 +21,12 @@ type DiscordNotifier struct {
 	webhookURL string
 	logger     *logrus.Logger
 	client     *http.Client
+
+	// Rate limiting
+	rateLimitMu          sync.Mutex
+	requestTimestamps    []time.Time
+	maxRequestsPerWindow int
+	rateLimitWindow      time.Duration
 }
 
 // DiscordEmbed represents a Discord embed object
@@ -54,6 +61,10 @@ func NewDiscordNotifier(webhookURL string, logger *logrus.Logger) *DiscordNotifi
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		// Set up rate limiting for Discord (5 requests per 2 seconds)
+		requestTimestamps:    make([]time.Time, 0, 5),
+		maxRequestsPerWindow: 5,
+		rateLimitWindow:      2 * time.Second,
 	}
 }
 
@@ -63,6 +74,48 @@ func truncateString(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen-3] + "..."
+}
+
+// waitForRateLimit ensures we don't exceed Discord's rate limit of 5 requests per 2 seconds
+func (d *DiscordNotifier) waitForRateLimit() {
+	d.rateLimitMu.Lock()
+	defer d.rateLimitMu.Unlock()
+
+	now := time.Now()
+
+	// Clean up old timestamps outside the window
+	cutoff := now.Add(-d.rateLimitWindow)
+	currentWindow := make([]time.Time, 0, d.maxRequestsPerWindow)
+
+	for _, timestamp := range d.requestTimestamps {
+		if timestamp.After(cutoff) {
+			currentWindow = append(currentWindow, timestamp)
+		}
+	}
+
+	d.requestTimestamps = currentWindow
+
+	// If we've reached the limit, wait until we can make another request
+	if len(d.requestTimestamps) >= d.maxRequestsPerWindow {
+		oldestRequest := d.requestTimestamps[0]
+		timeToWait := oldestRequest.Add(d.rateLimitWindow).Sub(now)
+
+		if timeToWait > 0 {
+			d.logger.Infof("Rate limit reached: waiting %v before sending next Discord notification", timeToWait)
+			d.rateLimitMu.Unlock()
+			time.Sleep(timeToWait)
+			d.rateLimitMu.Lock()
+		}
+
+		// After waiting, remove the oldest timestamp
+		if len(d.requestTimestamps) > 0 {
+			d.requestTimestamps = d.requestTimestamps[1:]
+		}
+	}
+
+	// Add the current request timestamp
+	d.requestTimestamps = append(d.requestTimestamps, now)
+	d.logger.Debugf("Current Discord rate limit window: %d/%d requests", len(d.requestTimestamps), d.maxRequestsPerWindow)
 }
 
 // SendAlert sends a notification to Discord when command output changes
@@ -149,6 +202,9 @@ func (d *DiscordNotifier) SendAlert(result *models.CommandResult) error {
 	// Try multiple times with exponential backoff
 	maxRetries := 3
 	for i := 0; i < maxRetries; i++ {
+		// Wait for rate limit before sending request
+		d.waitForRateLimit()
+
 		// Send the webhook request
 		d.logger.Debugf("Sending Discord webhook request (attempt %d/%d)", i+1, maxRetries)
 		resp, err := http.Post(d.webhookURL, "application/json", bytes.NewBuffer(jsonPayload))

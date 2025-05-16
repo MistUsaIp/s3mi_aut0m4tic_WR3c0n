@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/avanguard/watchtower/pkg/filemanager"
 	"github.com/avanguard/watchtower/pkg/models"
 	"github.com/sirupsen/logrus"
 )
@@ -25,23 +26,26 @@ type CommandExecutor struct {
 	queue               chan *models.Command
 	results             chan *models.CommandResult
 	wg                  sync.WaitGroup
-	activeCommands      int32      // Counter for currently running commands
-	mu                  sync.Mutex // Mutex for thread-safe updates to activeCommands
-	commandDoneCallback func()     // Callback that's triggered when a command completes
+	activeCommands      int32                    // Counter for currently running commands
+	mu                  sync.Mutex               // Mutex for thread-safe updates to activeCommands
+	commandDoneCallback func()                   // Callback that's triggered when a command completes
+	fileManager         *filemanager.FileManager // File manager for structured storage
 }
 
 // NewCommandExecutor creates a new CommandExecutor
 func NewCommandExecutor(logger *logrus.Logger, maxWorkers int) *CommandExecutor {
-	// Create res_files directory if it doesn't exist
-	if err := os.MkdirAll("res_files", 0755); err != nil {
-		logger.Errorf("Failed to create res_files directory: %v", err)
+	// Create the file manager for structured storage
+	fm, err := filemanager.NewFileManager("res_files")
+	if err != nil {
+		logger.Errorf("Failed to initialize file manager: %v", err)
 	}
 
 	executor := &CommandExecutor{
-		logger:     logger,
-		maxWorkers: maxWorkers,
-		queue:      make(chan *models.Command, 100), // Buffer size of 100 for the queue
-		results:    make(chan *models.CommandResult, 100),
+		logger:      logger,
+		maxWorkers:  maxWorkers,
+		queue:       make(chan *models.Command, 100), // Buffer size of 100 for the queue
+		results:     make(chan *models.CommandResult, 100),
+		fileManager: fm,
 	}
 
 	// Start the worker pool
@@ -354,30 +358,56 @@ func (e *CommandExecutor) ExecuteCommand(ctx context.Context, cmd *models.Comman
 	startTime := time.Now()
 	e.logger.Infof("Executing command: %s", cmd.Raw)
 
-	// Get the new and old file paths
-	newFilePath, oldFilePath := cmd.GetOutputFilePaths()
+	// Ensure domain extraction has been performed
+	if cmd.Domain == "" && cmd.URL != "" {
+		cmd.ExtractDomain()
+	}
 
-	// Create directory for output files if it doesn't exist
-	if newFilePath != "" {
-		outputDir := filepath.Dir(newFilePath)
-		if err := os.MkdirAll(outputDir, 0755); err != nil {
-			e.logger.Errorf("Failed to create output directory %s: %v", outputDir, err)
-		} else {
-			e.logger.Debugf("Created or ensured output directory: %s", outputDir)
+	// If domain is still empty, try to extract it from the command directly
+	if cmd.Domain == "" {
+		// Try to find a domain pattern in the command
+		cmdParts := strings.Split(cmd.Raw, " ")
+		for _, part := range cmdParts {
+			// Look for typical domain patterns
+			if strings.Contains(part, ".com") || strings.Contains(part, ".org") ||
+				strings.Contains(part, ".net") || strings.Contains(part, ".io") ||
+				strings.Contains(part, ".dev") {
+
+				// Clean up the domain string
+				domain := part
+				// Remove common prefixes
+				if strings.HasPrefix(domain, "http://") {
+					domain = strings.TrimPrefix(domain, "http://")
+				}
+				if strings.HasPrefix(domain, "https://") {
+					domain = strings.TrimPrefix(domain, "https://")
+				}
+				// Remove paths and query parameters
+				if strings.Contains(domain, "/") {
+					domain = strings.Split(domain, "/")[0]
+				}
+
+				cmd.Domain = domain
+				e.logger.Infof("Extracted domain from command: %s", cmd.Domain)
+				break
+			}
 		}
 	}
 
-	// Modify the command to include output flags
-	modifiedCmd := cmd.GetModifiedCommand()
-	e.logger.Debugf("Modified command: %s", modifiedCmd)
-
-	// Update the command's output file
-	if newFilePath != "" {
-		cmd.OutputFile = newFilePath
+	// If domain is still empty, generate a fallback name based on command hash
+	if cmd.Domain == "" {
+		cmdHash := models.HashFile([]byte(cmd.Raw))
+		shortHash := cmdHash[:8]
+		if cmd.CommandType != "" {
+			cmd.Domain = fmt.Sprintf("unknown_%s_%s", cmd.CommandType, shortHash)
+		} else {
+			cmd.Domain = fmt.Sprintf("unknown_cmd_%s", shortHash)
+		}
+		e.logger.Warnf("Could not extract domain, using fallback name: %s", cmd.Domain)
 	}
 
-	// Execute command using bash
-	execCmd := exec.CommandContext(ctx, "bash", "-c", modifiedCmd)
+	// Execute command using bash with the raw command string
+	execCmd := exec.CommandContext(ctx, "bash", "-c", cmd.Raw)
 	var stderr, stdout bytes.Buffer
 	execCmd.Stderr = &stderr
 	execCmd.Stdout = &stdout
@@ -396,7 +426,10 @@ func (e *CommandExecutor) ExecuteCommand(ctx context.Context, cmd *models.Comman
 		return result
 	}
 
-	// Read the new output file or use stdout if necessary
+	// Capture stdout always
+	stdoutBytes := stdout.Bytes()
+
+	// Try to read the output file if specified in the command
 	var output []byte
 	if cmd.OutputFile != "" {
 		// Wait a moment to ensure file system has completed writing
@@ -404,82 +437,119 @@ func (e *CommandExecutor) ExecuteCommand(ctx context.Context, cmd *models.Comman
 
 		output, err = os.ReadFile(cmd.OutputFile)
 		if err != nil {
-			e.logger.Warnf("Could not read output file %s: %v", cmd.OutputFile, err)
+			e.logger.Warnf("Could not read specified output file %s: %v", cmd.OutputFile, err)
 			// Use stdout as fallback
-			output = stdout.Bytes()
+			output = stdoutBytes
 		} else {
-			e.logger.Debugf("Successfully read output file: %s (%d bytes)", cmd.OutputFile, len(output))
+			e.logger.Debugf("Successfully read specified output file: %s (%d bytes)", cmd.OutputFile, len(output))
 		}
 	} else {
-		// If no output file, use stdout
-		output = stdout.Bytes()
+		// If no output file specified in command, use stdout
+		output = stdoutBytes
 	}
 
 	// Ensure output is not empty
 	if len(output) == 0 {
 		e.logger.Warnf("Command produced empty output, using stdout as fallback")
-		output = stdout.Bytes()
+		output = stdoutBytes
 	}
 
 	result.Output = output
 
-	// Calculate hash of the new output
+	// Calculate hash of the output
 	result.OutputHash = models.HashFile(result.Output)
 	e.logger.Debugf("Output hash: %s", result.OutputHash)
 
-	// Check if old file exists
-	var oldOutput []byte
-	var hasOldFile bool
-	if oldFilePath != "" {
-		oldOutput, err = os.ReadFile(oldFilePath)
-		hasOldFile = err == nil && len(oldOutput) > 0
-		if hasOldFile {
-			e.logger.Debugf("Found old file for comparison: %s (%d bytes)", oldFilePath, len(oldOutput))
-		} else {
-			e.logger.Debugf("No old file found or empty file at path: %s", oldFilePath)
+	// Save result to the structured storage if file manager is available
+	if e.fileManager != nil {
+		// Ensure we have a scan type
+		if cmd.ScanType == "" {
+			cmd.DetermineScanType()
 		}
-	}
 
-	// Check for changes and save old/new files
-	if hasOldFile {
-		oldHash := models.HashFile(oldOutput)
-		e.logger.Debugf("Old hash: %s, New hash: %s", oldHash, result.OutputHash)
+		storagePath, err := e.fileManager.SaveScanResult(
+			cmd.Domain,
+			cmd.CommandType,
+			cmd.ScanType,
+			cmd.Raw,
+			output,
+		)
 
-		if oldHash != result.OutputHash {
-			result.HasChanged = true
-			e.logger.Infof("Changes detected for command: %s", cmd.Raw)
-
-			// Calculate differences
-			result.Differences = e.calculateDifferences(oldOutput, result.Output)
-
-			// Display differences in terminal
-			fmt.Println("\n=== Changes Detected ===")
-			fmt.Printf("Command: %s\n", cmd.Raw)
-			fmt.Printf("Time: %s\n", time.Now().Format("2006-01-02 15:04:05"))
-			fmt.Println("\nDifferences:")
-			fmt.Println(result.Differences)
-			fmt.Println("=====================\n")
-
-			e.logger.Debugf("Differences: %s", result.Differences)
+		if err != nil {
+			e.logger.Errorf("Failed to save scan result to structured storage: %v", err)
 		} else {
-			e.logger.Debugf("No changes detected for command: %s", cmd.Raw)
+			e.logger.Infof("Saved scan result to structured storage: %s", storagePath)
+			result.StoragePath = storagePath
+
+			// Try to retrieve the previous scan result for comparison
+			prevScan, err := e.fileManager.GetPreviousScanResult(cmd.Domain, cmd.CommandType, cmd.ScanType)
+			if err == nil && prevScan != nil {
+				// Get the previous scan timestamp for reference
+				cmd.LastRun = prevScan.Timestamp
+
+				// Check if the output has changed by comparing with the latest.json
+				latestScan, err := e.fileManager.GetLatestScanResult(cmd.Domain, cmd.CommandType, cmd.ScanType)
+				if err == nil && latestScan != nil {
+					// Check if there are differences
+					rawPrev, _ := json.Marshal(prevScan.Output)
+					rawLatest, _ := json.Marshal(latestScan.Output)
+
+					if string(rawPrev) != string(rawLatest) {
+						result.HasChanged = true
+						e.logger.Infof("Changes detected for command: %s", cmd.Raw)
+
+						// Set previous output for reference
+						prevOutputStr := ""
+						if prevScan.RawOutput != "" {
+							prevOutputStr = prevScan.RawOutput
+						} else {
+							prevOutputBytes, _ := json.MarshalIndent(prevScan.Output, "", "  ")
+							prevOutputStr = string(prevOutputBytes)
+						}
+
+						cmd.LastOutput = []byte(prevOutputStr)
+
+						// Get the diff from the diff.json file
+						timestampDir := filepath.Dir(storagePath)
+						diffPath := filepath.Join(timestampDir, "diff.json")
+						diffData, err := os.ReadFile(diffPath)
+						if err == nil {
+							var diffResult filemanager.DiffResult
+							if err := json.Unmarshal(diffData, &diffResult); err == nil && diffResult.DiffSummary != "" {
+								result.Differences = diffResult.DiffSummary
+							} else {
+								// Fallback to simple text diff
+								result.Differences = fmt.Sprintf("Changes detected. Check diff at: %s", diffPath)
+							}
+						} else {
+							result.Differences = "Changes detected but diff not found"
+						}
+
+						// Display differences in terminal
+						fmt.Println("\n=== Changes Detected ===")
+						fmt.Printf("Command: %s\n", cmd.Raw)
+						fmt.Printf("Domain: %s (%s)\n", cmd.Domain, cmd.CommandType)
+						fmt.Printf("Time: %s\n", time.Now().Format("2006-01-02 15:04:05"))
+						fmt.Println("\nDifferences:")
+						fmt.Println(result.Differences)
+						fmt.Println("=====================\n")
+					} else {
+						e.logger.Debugf("No changes detected for command: %s", cmd.Raw)
+					}
+				}
+			} else {
+				e.logger.Debugf("No previous scan found for comparison: %v", err)
+
+				// For first run, still mark it as changed to trigger notifications
+				if len(result.Output) > 0 {
+					result.HasChanged = true
+					result.Differences = "Initial run - no previous data to compare with"
+					e.logger.Infof("First run for command: %s", cmd.Raw)
+				}
+			}
 		}
 	} else {
-		// If this is the first run, we want to trigger a notification with the initial results
-		if len(result.Output) > 0 {
-			result.HasChanged = true
-			result.Differences = "Initial run - no previous data to compare with"
-			e.logger.Infof("First run for command: %s", cmd.Raw)
-		}
-	}
-
-	// Save the old file (copy new to old) for next comparison
-	if newFilePath != "" && len(result.Output) > 0 {
-		if err := os.WriteFile(oldFilePath, result.Output, 0644); err != nil {
-			e.logger.Errorf("Failed to save old file %s: %v", oldFilePath, err)
-		} else {
-			e.logger.Debugf("Saved old file for future comparison: %s (%d bytes)", oldFilePath, len(result.Output))
-		}
+		e.logger.Warnf("File manager not available, skipping structured storage")
 	}
 
 	// Update command's last run info

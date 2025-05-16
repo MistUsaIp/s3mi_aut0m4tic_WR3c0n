@@ -1,1 +1,0 @@
-[{"method":"GET","url":"https://smetrics.verisign.com/live","status":200,"size":364,"found_params":[],"injection_place":"Path"}]
