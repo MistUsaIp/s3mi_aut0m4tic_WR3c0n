@@ -1,0 +1,6 @@
+{
+  "previous_scan": "2025-05-16T19:50:05.033065091Z",
+  "current_scan": "2025-05-16T19:56:33.121050202Z",
+  "has_changes": true,
+  "diff_summary": "Added lines:\n+ urls:         https://ote-cube.verisign.com/index.html\n\nRemoved lines:\n- urls:         https://rirs.gslb.verisign.com/account\n"
+}
