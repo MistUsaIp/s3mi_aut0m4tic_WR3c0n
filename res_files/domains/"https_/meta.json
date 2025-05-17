@@ -1,8 +1,8 @@
 {
   "domain": "\"https_",
   "first_seen": "2025-05-16T17:08:11.050830191+03:30",
-  "last_scan": "2025-05-17T01:19:32.571937267Z",
-  "scan_count": 44,
+  "last_scan": "2025-05-17T07:34:03.814711287Z",
+  "scan_count": 55,
   "tools_used": [
     "x8",
     "ffuf"
@@ -11,6 +11,6 @@
     "endpoints",
     "general"
   ],
-  "change_count": 40,
-  "last_changed": "2025-05-17T01:19:32.572413509Z"
+  "change_count": 51,
+  "last_changed": "2025-05-17T07:34:03.8151713Z"
 }

@@ -1,0 +1,9 @@
+{
+  "command": "x8 -u \"https://rirs.gslb.verisign.com/status\" -w params.wl --reflected-only",
+  "command_type": "x8",
+  "domain": "\"https_",
+  "scan_type": "endpoints",
+  "timestamp": "2025-05-17T07:22:18.86912846Z",
+  "output": "Raw output (non-JSON)",
+  "raw_output": "urls:         https://rirs.gslb.verisign.com/status\nmethods:      GET\nwordlist len: 307740\n\n\n"
+}
