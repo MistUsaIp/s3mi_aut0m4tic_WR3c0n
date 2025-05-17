@@ -3,7 +3,7 @@
   "command_type": "ffuf",
   "domain": "\"https_",
   "scan_type": "general",
-  "timestamp": "2025-05-17T00:59:28.499649636Z",
+  "timestamp": "2025-05-17T07:26:00.842051854Z",
   "output": "Raw output (non-JSON)",
-  "raw_output": "\r\u001b[2K.                       [Status: 200, Size: 1247, Words: 99, Lines: 1, Duration: 32ms]\u001b[0m\n\r\u001b[2Kerror                   [Status: 500, Size: 73, Words: 1, Lines: 1, Duration: 20ms]\u001b[0m\n\r\u001b[2Khealthcheck             [Status: 200, Size: 79, Words: 2, Lines: 1, Duration: 10ms]\u001b[0m\n\r\u001b[2Khealth                  [Status: 200, Size: 79, Words: 2, Lines: 1, Duration: 24ms]\u001b[0m\n\r\u001b[2Kmetrics                 [Status: 200, Size: 1247, Words: 99, Lines: 1, Duration: 14ms]\u001b[0m\n"
+  "raw_output": "\r\u001b[2K.                       [Status: 200, Size: 1247, Words: 99, Lines: 1, Duration: 38ms]\u001b[0m\n\r\u001b[2Kerror                   [Status: 500, Size: 73, Words: 1, Lines: 1, Duration: 52ms]\u001b[0m\n\r\u001b[2Khealthcheck             [Status: 200, Size: 79, Words: 2, Lines: 1, Duration: 11ms]\u001b[0m\n\r\u001b[2Khealth                  [Status: 200, Size: 79, Words: 2, Lines: 1, Duration: 18ms]\u001b[0m\n\r\u001b[2Kmetrics                 [Status: 200, Size: 1247, Words: 99, Lines: 1, Duration: 19ms]\u001b[0m\n"
 }

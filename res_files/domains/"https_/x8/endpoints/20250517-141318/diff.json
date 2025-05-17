@@ -1,0 +1,6 @@
+{
+  "previous_scan": "2025-05-17T07:34:03.814711287Z",
+  "current_scan": "2025-05-17T14:13:18.354617909Z",
+  "has_changes": true,
+  "diff_summary": "Added lines:\n+ urls:         https://smetrics.verisign.com/_check\n\nRemoved lines:\n- urls:         https://rirs.gslb.verisign.com/checkin\n"
+}

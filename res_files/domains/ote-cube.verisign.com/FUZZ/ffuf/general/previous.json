@@ -3,7 +3,7 @@
   "command_type": "ffuf",
   "domain": "ote-cube.verisign.com/FUZZ",
   "scan_type": "general",
-  "timestamp": "2025-05-17T00:57:27.715672133Z",
+  "timestamp": "2025-05-17T07:20:45.757911702Z",
   "output": "Raw output (non-JSON)",
-  "raw_output": "\r\u001b[2K.                       [Status: 200, Size: 2, Words: 2, Lines: 2, Duration: 16ms]\u001b[0m\n\r\u001b[2Khealth                  [Status: 200, Size: 67, Words: 3, Lines: 1, Duration: 32ms]\u001b[0m\n"
+  "raw_output": "\r\u001b[2K.                       [Status: 200, Size: 2, Words: 2, Lines: 2, Duration: 8ms]\u001b[0m\n\r\u001b[2Khealth                  [Status: 200, Size: 67, Words: 3, Lines: 1, Duration: 38ms]\u001b[0m\n"
 }
