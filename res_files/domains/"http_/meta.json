@@ -1,14 +1,14 @@
 {
   "domain": "\"http_",
   "first_seen": "2025-05-16T18:34:57.510128207+03:30",
-  "last_scan": "2025-05-16T21:52:42.406030121Z",
-  "scan_count": 3,
+  "last_scan": "2025-05-17T01:30:06.605687075Z",
+  "scan_count": 4,
   "tools_used": [
     "ffuf"
   ],
   "scan_types": [
     "general"
   ],
-  "change_count": 2,
-  "last_changed": "2025-05-16T21:52:42.406539779Z"
+  "change_count": 3,
+  "last_changed": "2025-05-17T01:30:06.606159901Z"
 }
