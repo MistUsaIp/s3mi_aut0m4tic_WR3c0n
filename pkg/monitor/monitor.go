@@ -427,6 +427,29 @@ tail -f -n 50 "%s"
 
 	m.logger.Info("Finished command execution cycle")
 
+	// Send completion notification if Discord webhook is configured
+	if m.notifier != nil {
+		// Count changed results and errors
+		changedCount := 0
+		errorsCount := 0
+		for _, result := range results {
+			if result.HasChanged {
+				changedCount++
+			}
+			if result.Error != nil {
+				errorsCount++
+			}
+		}
+		
+		// Send completion notification
+		err := m.notifier.SendCompletionNotification(len(results), changedCount, errorsCount)
+		if err != nil {
+			m.logger.Errorf("Failed to send completion notification: %v", err)
+		} else {
+			m.logger.Info("Sent completion notification to Discord")
+		}
+	}
+
 	// Signal that all commands are done if stopChan is not already closed
 	select {
 	case <-m.stopChan:
