@@ -354,3 +354,74 @@ func (d *DiscordNotifier) SendCompletionNotification(totalCommands int, changedC
 
 	return d.sendWebhookMessage(message)
 }
+
+// sendWebhookMessage sends a message to Discord webhook with appropriate rate limiting and retries
+func (d *DiscordNotifier) sendWebhookMessage(message DiscordMessage) error {
+	// Convert message to JSON
+	jsonPayload, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("failed to marshal Discord payload: %v", err)
+	}
+
+	// Try multiple times with exponential backoff
+	maxRetries := 3
+	for i := 0; i < maxRetries; i++ {
+		// Wait for rate limit before sending request
+		d.waitForRateLimit()
+
+		// Send the webhook request
+		d.logger.Debugf("Sending Discord webhook request (attempt %d/%d)", i+1, maxRetries)
+		resp, err := d.client.Post(d.webhookURL, "application/json", bytes.NewBuffer(jsonPayload))
+
+		if err != nil {
+			d.logger.Warnf("Discord webhook request failed (attempt %d/%d): %v", i+1, maxRetries, err)
+			if i < maxRetries-1 {
+				// Wait with exponential backoff before retrying
+				time.Sleep(time.Duration(1<<i) * time.Second)
+				continue
+			}
+			return fmt.Errorf("failed to send Discord webhook after %d attempts: %v", maxRetries, err)
+		}
+
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(resp.Body)
+
+		// Check response status
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			d.logger.Warnf("Discord webhook returned non-success status (attempt %d/%d): %d, body: %s",
+				i+1, maxRetries, resp.StatusCode, string(body))
+
+			// If rate limited, wait and retry
+			if resp.StatusCode == 429 {
+				// Parse rate limit headers if available
+				retryAfter := 5 // Default 5 seconds
+				if s := resp.Header.Get("Retry-After"); s != "" {
+					if i, err := strconv.Atoi(s); err == nil {
+						retryAfter = i
+					}
+				}
+
+				if i < maxRetries-1 {
+					d.logger.Infof("Rate limited by Discord, retrying after %d seconds", retryAfter)
+					time.Sleep(time.Duration(retryAfter) * time.Second)
+					continue
+				}
+			}
+
+			if i < maxRetries-1 {
+				time.Sleep(time.Duration(1<<i) * time.Second)
+				continue
+			}
+
+			return fmt.Errorf("Discord webhook returned non-success status after %d attempts: %d, body: %s",
+				maxRetries, resp.StatusCode, string(body))
+		}
+
+		// Success!
+		d.logger.Infof("Discord webhook message sent successfully")
+		return nil
+	}
+
+	// This point should not be reached, but just in case
+	return fmt.Errorf("failed to send Discord webhook message after %d attempts", maxRetries)
+}
