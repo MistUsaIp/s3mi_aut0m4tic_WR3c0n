@@ -1,0 +1,9 @@
+{
+  "command": "x8 -u https://smetrics.verisign.com/va -w params.wl --reflected-only",
+  "command_type": "x8",
+  "domain": "smetrics.verisign.com/va",
+  "scan_type": "endpoints",
+  "timestamp": "2025-05-17T22:19:19.901012617+03:30",
+  "output": "Raw output (non-JSON)",
+  "raw_output": "urls:         https://smetrics.verisign.com/va\nmethods:      GET\nwordlist len: 6527\n\n\n"
+}

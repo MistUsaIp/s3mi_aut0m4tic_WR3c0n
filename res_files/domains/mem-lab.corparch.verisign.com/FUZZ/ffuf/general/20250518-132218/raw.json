@@ -1,0 +1,9 @@
+{
+  "command": "ffuf -u https://mem-lab.corparch.verisign.com/FUZZ -w fuzz.wl -mc all -fc 404,400,403",
+  "command_type": "ffuf",
+  "domain": "mem-lab.corparch.verisign.com/FUZZ",
+  "scan_type": "general",
+  "timestamp": "2025-05-18T13:22:18.390201198+03:30",
+  "output": "Raw output (non-JSON)",
+  "raw_output": "\r\u001b[2K.                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 194ms]\u001b[0m\n\r\u001b[2Khealth                  [Status: 200, Size: 192, Words: 36, Lines: 8, Duration: 194ms]\u001b[0m\n"
+}

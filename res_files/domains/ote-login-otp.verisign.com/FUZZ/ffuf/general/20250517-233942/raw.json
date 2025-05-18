@@ -1,0 +1,8 @@
+{
+  "command": "ffuf -u https://ote-login-otp.verisign.com/FUZZ -w fuzz.wl -mc all -fc 404,400,403",
+  "command_type": "ffuf",
+  "domain": "ote-login-otp.verisign.com/FUZZ",
+  "scan_type": "general",
+  "timestamp": "2025-05-17T23:39:42.906613185+03:30",
+  "output": "Raw output (non-JSON)"
+}

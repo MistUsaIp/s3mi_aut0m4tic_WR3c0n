@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -197,6 +198,7 @@ func (m *Monitor) executeCommands() {
 
 	if totalCommands == 0 {
 		m.logger.Warn("No commands to execute")
+		close(m.stopChan) // Ensure monitor stops if no commands
 		return
 	}
 
@@ -205,16 +207,103 @@ func (m *Monitor) executeCommands() {
 	// Create the main output directory if it doesn't exist
 	if err := os.MkdirAll("res_files", 0755); err != nil {
 		m.logger.Errorf("Failed to create main output directory: %v", err)
+		// Not returning here, executor might still work if dir exists or command doesn't write files
 	}
 
-	// If monitoring is enabled, open separate terminals for each command
+	// If monitoring is enabled, open separate terminals for each command's output
 	if m.monitoring {
-		// Create a channel to control parallel execution
-		parallelChan := make(chan struct{}, m.threads) // Use specified number of threads
+		// Create a channel to control parallel execution of tailing terminals
+		parallelChan := make(chan struct{}, m.threads)
+
+		m.logger.Infof("Monitoring mode enabled: Launching terminals to tail output files for %d commands.", totalCommands)
 
 		for _, cmd := range allCommands {
-			// Get the output file paths for monitoring
-			newFilePath, _ := cmd.GetOutputFilePaths()
+			// Get the output file path that the executor will use (via GetModifiedCommand logic implicitly)
+			// The fileManager will save output based on domain/type/scanType.
+			// For tailing, we need the path GetModifiedCommand would use.
+			// Let's ensure domain and command type are determined for GetOutputFilePaths
+			if cmd.CommandType == "" {
+				cmd.DetermineCommandType()
+			}
+			if cmd.Domain == "" { // Attempt to extract domain if not already set
+				cmd.ExtractURL() // This also calls ExtractDomain
+				if cmd.Domain == "" {
+					// Fallback logic similar to executor if still no domain
+					cmdParts := strings.Split(cmd.Raw, " ")
+					for _, part := range cmdParts {
+						if strings.Contains(part, ".com") || strings.Contains(part, ".org") ||
+							strings.Contains(part, ".net") || strings.Contains(part, ".io") ||
+							strings.Contains(part, ".dev") {
+							domain := strings.TrimPrefix(strings.TrimPrefix(part, "https://"), "http://")
+							if strings.Contains(domain, "/") {
+								domain = strings.Split(domain, "/")[0]
+							}
+							cmd.Domain = domain
+							break
+					}
+				}
+					if cmd.Domain == "" { // If still no domain, use a placeholder for path generation
+						m.logger.Warnf("Cannot determine domain for command '%s' for tailing, output path might be unpredictable.", cmd.Raw)
+						// We can't easily replicate the hash-based fallback domain name from executor here
+						// So, we might skip tailing for this command or use a very generic path if GetOutputFilePaths handles empty domain.
+						// For now, let GetOutputFilePaths decide.
+					}
+				}
+			}
+
+			// This is the file path that GetModifiedCommand directs output to.
+			// The actual execution by CommandExecutor will use this path if it parses the modified command.
+			// Or, if the command has its own -o, CommandExecutor uses that, then FileManager saves to its structured path.
+			// For tailing, we *must* use the path defined by GetModifiedCommand, as that's what the script *would* have used.
+			// However, the actual output will be in fileManager's structured path.
+			// This reveals a slight disconnect. The monitoring script was based on GetModifiedCommand's output.
+			// The CommandExecutor will save to a structured path.
+			// For robust tailing, we should tail the fileManager's *actual* output file for this specific execution.
+			// This means we need to know the *future* timestamped path *before* execution. This is not feasible.
+
+			// Let's reconsider: The CommandExecutor saves output.
+			// If a command has "-o output.txt", executor reads output.txt. FileManager saves its content.
+			// If ffuf has no "-o", GetModifiedCommand would add "-o <domain>_F/..._new.txt".
+			// The original monitoring script *ran* GetModifiedCommand.
+			// Now, the CommandExecutor runs cmd.Raw.
+			// So we should tail the file specified in cmd.OutputFile if present,
+			// otherwise, we can't easily tail a generic stdout that isn't being redirected by the raw command.
+
+			// New strategy:
+			// 1. The CommandExecutor will eventually save the output to a structured path (e.g., .../timestamp/raw.json).
+			// 2. We can't tail this easily predictively.
+			// 3. If the *original* command specified an output file (`cmd.OutputFile`), we can tail that.
+			// 4. If not, tailing is difficult. We might just log verbosely for those.
+
+			// Simpler approach for monitoring: Tail the file that GetModifiedCommand *would* create.
+			// This assumes the user understands that if they use -monitoring, their command *will be modified*
+			// to output to this standard location, and the executor should run this *modified* command.
+			// This requires changing ExecuteCommand to run cmd.GetModifiedCommand() if monitoring is on.
+			// OR, the monitor prepares the modified command and passes *that* to the executor.
+
+			// Let's stick to: if monitoring, the commands submitted to executor *are* the modified commands.
+			// This ensures output files are standardized and tail-able.
+
+			modifiedCmdStr := cmd.GetModifiedCommand() // This command will be executed
+			tailFilePath := cmd.OutputFile // GetOutputFilePaths() gives _new.txt, _old.txt. cmd.OutputFile is now set by GetModifiedCommand logic
+
+			// Need to re-parse OutputFile from the modified command string, as GetModifiedCommand sets it.
+			// Create a temporary command object to parse the output file from the modified command
+			tempCmdForPath := models.NewCommand(modifiedCmdStr)
+			tailFilePath = tempCmdForPath.OutputFile
+
+			if tailFilePath == "" {
+				m.logger.Warnf("Command '%s' (modified: '%s') does not specify an output file, cannot tail for monitoring.", cmd.Raw, modifiedCmdStr)
+				continue
+			}
+
+			// Ensure the directory for the tailFilePath exists, as tail -f needs the file (or for dir to exist for file creation)
+			if err := os.MkdirAll(filepath.Dir(tailFilePath), 0755); err != nil {
+				m.logger.Warnf("Could not create directory for tail file %s: %v", tailFilePath, err)
+				// continue // Might still work if command creates it
+			}
+
+
 			domainDisplay := cmd.Domain
 			if domainDisplay == "" {
 				domainDisplay = "unknown"
@@ -222,42 +311,41 @@ func (m *Monitor) executeCommands() {
 
 			// Create a monitoring script for this command
 			scriptContent := fmt.Sprintf(`#!/bin/bash
-# Keep the terminal open even if the command fails
+# Keep the terminal open
 set -e
 
 # Function to clean up on exit
 cleanup() {
-    echo "Monitoring stopped at: $(date)"
-    # Keep the window open for 5 seconds before closing
-    sleep 5
+    echo "Monitoring stopped for: %s"
+    echo "Output was being tailed from: %s"
+    echo "Terminal will close in 10 seconds..."
+    # Keep the window open for 10 seconds before closing
+    sleep 10
 }
 
 # Set up trap for cleanup
-trap cleanup EXIT
+trap cleanup EXIT SIGINT SIGTERM
 
-echo "=== Monitoring Command (%s - %s) ==="
-echo "Command: %s"
-echo "Output: %s"
+echo "=== Monitoring Output ==="
+echo "Original Command: %s"
+echo "Executed Command: %s"
+echo "Tailing output file: %s"
+echo "Domain: %s (%s)"
 echo "Started at: $(date)"
-echo "========================"
+echo "========================="
+echo "Waiting for output file to appear/update..."
+echo "(If this window is blank for a long time, the command might not be producing output to this file, or it might have finished quickly)"
+echo "========================="
 
-while true; do
-    echo "Running command at: $(date)"
-    echo "------------------------"
-    %s
-    echo "------------------------"
-    echo "Command completed at: $(date)"
-    if [ -f "%s" ]; then
-        echo "Output saved to: %s"
-    fi
-    echo "========================"
-    # No sleep here - continuous execution
-done`, cmd.CommandType, domainDisplay, cmd.Raw, newFilePath, cmd.GetModifiedCommand(), newFilePath, newFilePath)
+# Wait for the file to exist, then tail it
+while [ ! -f "%s" ]; do sleep 1; done
+tail -f -n 50 "%s"
+`, cmd.Raw, tailFilePath, cmd.Raw, modifiedCmdStr, tailFilePath, domainDisplay, cmd.CommandType, tailFilePath, tailFilePath)
 
 			// Create a temporary script file
-			scriptFile := fmt.Sprintf("/tmp/watchtower_monitor_%d.sh", time.Now().UnixNano())
+			scriptFile := fmt.Sprintf("/tmp/watchtower_tail_%d.sh", time.Now().UnixNano())
 			if err := os.WriteFile(scriptFile, []byte(scriptContent), 0755); err != nil {
-				m.logger.Errorf("Failed to create monitoring script: %v", err)
+				m.logger.Errorf("Failed to create monitoring script for tailing: %v", err)
 				continue
 			}
 
@@ -265,29 +353,57 @@ done`, cmd.CommandType, domainDisplay, cmd.Raw, newFilePath, cmd.GetModifiedComm
 			parallelChan <- struct{}{}
 
 			// Open a new terminal window with the monitoring script
-			monitorCmd := exec.Command("gnome-terminal", "--", "bash", "-c", fmt.Sprintf("bash %s; exec bash", scriptFile))
-			if err := monitorCmd.Start(); err != nil {
-				m.logger.Errorf("Failed to open monitoring terminal: %v", err)
+			// Try gnome-terminal, then xterm
+			var termCmd *exec.Cmd
+			termPath, err := exec.LookPath("gnome-terminal")
+			if err == nil {
+				termCmd = exec.Command(termPath, "--", "bash", "-c", fmt.Sprintf("bash %s; exec bash", scriptFile))
+			} else {
+				xtermPath, err := exec.LookPath("xterm")
+				if err == nil {
+					termCmd = exec.Command(xtermPath, "-e", "bash", "-c", fmt.Sprintf("bash %s; exec bash", scriptFile))
+				} else {
+					m.logger.Error("No suitable terminal found (gnome-terminal or xterm) for monitoring.")
+					os.Remove(scriptFile)
+					<-parallelChan // Release slot
+					continue
+				}
+			}
+
+			if err := termCmd.Start(); err != nil {
+				m.logger.Errorf("Failed to open monitoring terminal for tailing: %v", err)
 				os.Remove(scriptFile)
 				<-parallelChan // Release the slot
 				continue
 			}
+			m.logger.Infof("Launched terminal for tailing output of: %s (file: %s)", cmd.Raw, tailFilePath)
 
-			// Clean up the script file after a longer delay to ensure it's loaded
-			go func(scriptFile string) {
-				time.Sleep(5 * time.Second)
-				os.Remove(scriptFile)
+			// Clean up the script file after a delay
+			go func(sf string) {
+				time.Sleep(5 * time.Second) // Give terminal time to load script
+				os.Remove(sf)
 			}(scriptFile)
 
-			// Release the parallel execution slot after a short delay
+			// Release the parallel execution slot
 			go func() {
-				time.Sleep(2 * time.Second)
+				// No sleep needed here, as Start() is non-blocking.
+				// The number of concurrent terminals is managed by parallelChan buffer.
 				<-parallelChan
 			}()
 		}
+		// Modify allCommands to be their GetModifiedCommand version
+		// so the executor runs the version that produces tail-able files.
+		for i := range allCommands {
+			// Create a new command object based on the modified string for execution
+			// This ensures that the OutputFile field is correctly parsed from the modified command
+			allCommands[i] = models.NewCommand(allCommands[i].GetModifiedCommand())
+		}
+		m.logger.Info("All commands have been modified for output redirection in monitoring mode.")
 	}
 
-	// Execute commands in parallel, grouped by URL
+	// Execute commands via the executor - THIS NOW ALWAYS RUNS
+	// If monitoring is enabled, allCommands will be the modified versions.
+	m.logger.Infof("Submitting %d commands to executor...", len(allCommands))
 	results := m.executor.ExecuteGroupedCommands(ctx, allCommands)
 	m.logger.Infof("Received %d/%d results from command execution", len(results), totalCommands)
 
@@ -311,7 +427,12 @@ done`, cmd.CommandType, domainDisplay, cmd.Raw, newFilePath, cmd.GetModifiedComm
 
 	m.logger.Info("Finished command execution cycle")
 
-	// Signal that all commands are done
-	m.logger.Info("All commands have been processed. Exiting.")
+	// Signal that all commands are done if stopChan is not already closed
+	select {
+	case <-m.stopChan:
+		// Already closing or closed
+	default:
+		m.logger.Info("All commands have been processed. Signalling monitor to stop.")
 	close(m.stopChan)
+	}
 }

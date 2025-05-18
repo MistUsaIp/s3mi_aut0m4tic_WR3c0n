@@ -1,0 +1,9 @@
+{
+  "command": "ffuf -u \"http://onsitecrl.verisign.com/FUZZ\" -w fuzz.wl -mc all -fc 404,400,403 -fw 1",
+  "command_type": "ffuf",
+  "domain": "\"http_",
+  "scan_type": "general",
+  "timestamp": "2025-05-17T23:12:19.566360903+03:30",
+  "output": "Raw output (non-JSON)",
+  "raw_output": "\r\u001b[2K.crt                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 376ms]\u001b[0m\n\r\u001b[2K.cer                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 399ms]\u001b[0m\n"
+}

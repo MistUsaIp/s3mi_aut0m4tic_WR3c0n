@@ -28,15 +28,19 @@ func (c *Command) ExtractURL() {
 	// For production, you might want to make this more robust
 	parts := strings.Split(c.Raw, " ")
 	for i, part := range parts {
-		if strings.HasPrefix(part, "https://") || strings.HasPrefix(part, "http://") {
+		// Trim leading/trailing quotes from the part before checking prefixes
+		trimmedPart := strings.Trim(part, "\"")
+
+		if strings.HasPrefix(trimmedPart, "https://") || strings.HasPrefix(trimmedPart, "http://") {
 			// If this is the -u parameter, take the next part as the URL
-			if part == "-u" && i+1 < len(parts) {
-				c.URL = parts[i+1]
-				c.ExtractDomain()
+			if (part == "-u" || part == "--url") && i+1 < len(parts) { // also handle --url
+				c.URL = strings.Trim(parts[i+1], "\"") // Trim quotes from the URL value itself
+				c.ExtractDomain() // Extract domain immediately after setting URL
 				return
 			}
-			c.URL = part
-			c.ExtractDomain()
+			// If the part itself is the URL (e.g. ffuf https://...)
+			c.URL = trimmedPart // Use the quote-trimmed part
+			c.ExtractDomain() // Extract domain immediately
 			return
 		}
 	}

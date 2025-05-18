@@ -1,0 +1,14 @@
+{
+  "timestamp": "2023-05-18T20:36:10Z",
+  "scan_type": "general",
+  "findings": [
+    {
+      "url": "https://a-root-servers-org.gslb.verisign.com/robots.txt",
+      "status_code": 200,
+      "content_length": 423,
+      "response_time": 0.254
+    }
+  ],
+  "total_count": 1,
+  "note": "One endpoint was removed for testing deletion detection"
+}

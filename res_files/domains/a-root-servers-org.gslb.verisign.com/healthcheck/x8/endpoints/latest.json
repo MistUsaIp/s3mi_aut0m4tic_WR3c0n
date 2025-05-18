@@ -1,0 +1,9 @@
+{
+  "command": "x8 -u \"https://a-root-servers-org.gslb.verisign.com/healthcheck\" -w params.wl --reflected-only",
+  "command_type": "x8",
+  "domain": "a-root-servers-org.gslb.verisign.com/healthcheck",
+  "scan_type": "endpoints",
+  "timestamp": "2025-05-18T22:22:10.755535749+03:30",
+  "output": "Raw output (non-JSON)",
+  "raw_output": "urls:         https://a-root-servers-org.gslb.verisign.com/healthcheck\nmethods:      GET\nwordlist len: 6527\n\n\n"
+}

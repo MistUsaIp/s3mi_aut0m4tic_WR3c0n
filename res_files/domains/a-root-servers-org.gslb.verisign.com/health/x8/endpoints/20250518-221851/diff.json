@@ -1,0 +1,6 @@
+{
+  "previous_scan": "2023-05-18T20:36:26Z",
+  "current_scan": "2025-05-18T22:18:51.72861602+03:30",
+  "has_changes": true,
+  "diff_summary": "# Summary: 3 line(s) added, 0 line(s) removed\n\n# Lines added:\n+ urls:         https://a-root-servers-org.gslb.verisign.com/health\n\n+ methods:      GET\n\n+ wordlist len: 6527\n\n"
+}

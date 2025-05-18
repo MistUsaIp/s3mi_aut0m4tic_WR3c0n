@@ -1,0 +1,6 @@
+{
+  "previous_scan": "2025-05-16T17:08:25.736586059+03:30",
+  "current_scan": "2025-05-17T20:31:20.465916191+03:30",
+  "has_changes": true,
+  "diff_summary": "Removed lines:\n- [TEST_ENTRY] Found endpoint: /ee/test_endpoint (HTTP 200)\n- This is a test entry that should be detected and removed on next run.\n"
+}

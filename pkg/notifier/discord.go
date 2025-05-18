@@ -128,19 +128,41 @@ func (d *DiscordNotifier) SendAlert(result *models.CommandResult) error {
 
 	// Build the message content
 	var contentBuilder strings.Builder
-	contentBuilder.WriteString("## :warning: Command Output Changed\n\n")
-	contentBuilder.WriteString(fmt.Sprintf("**Command:** `%s`\n", result.Command.Raw))
-	contentBuilder.WriteString(fmt.Sprintf("**Time:** %s\n", result.ExecutedAt.Format("2006-01-02 15:04:05")))
-
+	
+	// Use a more distinct heading with emoji 
+	if result.Error != nil {
+		contentBuilder.WriteString("## :x: Command Error\n\n")
+	} else if result.HasChanged {
+		contentBuilder.WriteString("## :rotating_light: Scan Results Changed\n\n")
+	} else {
+		contentBuilder.WriteString("## :white_check_mark: Scan Completed\n\n")
+	}
+	
+	// Command information section
+	contentBuilder.WriteString("### Command Details\n")
+	contentBuilder.WriteString(fmt.Sprintf(":arrow_right: `%s`\n\n", result.Command.Raw))
+	contentBuilder.WriteString(fmt.Sprintf(":clock1: **Time:** %s\n", result.ExecutedAt.Format("2006-01-02 15:04:05")))
+	
 	if result.Command.Domain != "" {
-		contentBuilder.WriteString(fmt.Sprintf("**Domain:** `%s`\n", result.Command.Domain))
-		contentBuilder.WriteString(fmt.Sprintf("**Type:** `%s`\n", result.Command.CommandType))
+		contentBuilder.WriteString(fmt.Sprintf(":globe_with_meridians: **Target:** `%s`\n", result.Command.Domain))
+		contentBuilder.WriteString(fmt.Sprintf(":wrench: **Tool:** `%s`\n", result.Command.CommandType))
+		if result.Command.ScanType != "" {
+			contentBuilder.WriteString(fmt.Sprintf(":mag: **Scan Type:** `%s`\n", result.Command.ScanType))
+		}
+	}
+	
+	contentBuilder.WriteString(fmt.Sprintf(":hourglass: **Duration:** %v\n\n", result.TimeTaken))
+	
+	// Storage path if available
+	if result.StoragePath != "" {
+		contentBuilder.WriteString(fmt.Sprintf(":file_folder: **Results Path:** `%s`\n\n", result.StoragePath))
 	}
 
-	contentBuilder.WriteString(fmt.Sprintf("**Duration:** %v\n\n", result.TimeTaken))
-
+	// Error details if present
 	if result.Error != nil {
-		contentBuilder.WriteString(fmt.Sprintf("**Error:** %v\n\n", result.Error))
+		contentBuilder.WriteString("### :warning: Error\n")
+		contentBuilder.WriteString(fmt.Sprintf("`%v`\n\n", result.Error))
+		
 		// Include stderr if available
 		if stderr := getStderrFromError(result.Error); stderr != "" {
 			contentBuilder.WriteString("**Error Details:**\n```\n")
@@ -148,49 +170,57 @@ func (d *DiscordNotifier) SendAlert(result *models.CommandResult) error {
 			contentBuilder.WriteString("\n```\n")
 		}
 	} else if result.HasChanged {
-		contentBuilder.WriteString("### Differences:\n")
+		// Changes detected section
+		contentBuilder.WriteString("### :clipboard: Changes Detected\n\n")
 
-		// Make the differences code block for better readability
+		// Make the differences more visible with a color-coded diff block
 		contentBuilder.WriteString("```diff\n")
-		contentBuilder.WriteString(result.Differences)
+		
+		// Check if differences information is available
+		if result.Differences == "" {
+			contentBuilder.WriteString("# Changes detected but no details available\n")
+		} else {
+			contentBuilder.WriteString(result.Differences)
+		}
 		contentBuilder.WriteString("\n```\n")
 
-		// Add output file path
+		// Add output file path if available
 		if result.Command.OutputFile != "" {
 			contentBuilder.WriteString(fmt.Sprintf("\n**Output File:** `%s`\n", result.Command.OutputFile))
 		}
+	} else {
+		contentBuilder.WriteString("### :information_source: No Changes\n")
+		contentBuilder.WriteString("Scan completed successfully with no changes detected.\n")
 	}
+	
+	// Add timestamp stamp at the end
+	contentBuilder.WriteString(fmt.Sprintf("\n\n_Notification sent at: %s_", time.Now().Format("2006-01-02 15:04:05")))
 
 	d.logger.Debugf("Discord notification content prepared (%d chars)", contentBuilder.Len())
 
 	// Prepare the webhook payload - use embed format for longer content
 	content := contentBuilder.String()
-	var payload map[string]interface{}
-
-	if len(content) > 2000 {
-		// Use embed for longer content
-		d.logger.Debugf("Using embed format for long message (%d chars)", len(content))
-
-		// Truncate the content for the embed description
-		description := content
-		if len(description) > 4096 {
-			description = description[:4090] + "..."
-		}
-
-		payload = map[string]interface{}{
-			"embeds": []map[string]interface{}{
-				{
-					"title":       "Command Output Changed",
-					"description": description,
-					"color":       15158332, // Red
-				},
-			},
-		}
+	
+	// Get a color based on status (red for error, yellow for changes, green for success)
+	var color int
+	if result.Error != nil {
+		color = 0xFF0000 // Red
+	} else if result.HasChanged {
+		color = 0xFFCC00 // Yellow
 	} else {
-		// Use simple content for shorter messages
-		payload = map[string]interface{}{
-			"content": content,
-		}
+		color = 0x00FF00 // Green
+	}
+	
+	// Always use embed format for consistent formatting
+	payload := map[string]interface{}{
+		"embeds": []map[string]interface{}{
+			{
+				"title": getEmbedTitle(result),
+				"description": content,
+				"color": color,
+				"timestamp": time.Now().Format(time.RFC3339),
+			},
+		},
 	}
 
 	// Convert payload to JSON
@@ -207,7 +237,7 @@ func (d *DiscordNotifier) SendAlert(result *models.CommandResult) error {
 
 		// Send the webhook request
 		d.logger.Debugf("Sending Discord webhook request (attempt %d/%d)", i+1, maxRetries)
-		resp, err := http.Post(d.webhookURL, "application/json", bytes.NewBuffer(jsonPayload))
+		resp, err := d.client.Post(d.webhookURL, "application/json", bytes.NewBuffer(jsonPayload))
 
 		if err != nil {
 			d.logger.Warnf("Discord webhook request failed (attempt %d/%d): %v", i+1, maxRetries, err)
@@ -260,6 +290,27 @@ func (d *DiscordNotifier) SendAlert(result *models.CommandResult) error {
 
 	// This point should not be reached, but just in case
 	return fmt.Errorf("failed to send Discord notification after %d attempts", maxRetries)
+}
+
+// getEmbedTitle returns an appropriate title for the Discord embed based on result
+func getEmbedTitle(result *models.CommandResult) string {
+	domain := result.Command.Domain
+	if domain == "" {
+		domain = "Unknown Domain"
+	}
+	
+	toolType := result.Command.CommandType
+	if toolType == "" {
+		toolType = "scan"
+	}
+	
+	if result.Error != nil {
+		return fmt.Sprintf("❌ %s %s Failed", strings.ToUpper(toolType), domain)
+	} else if result.HasChanged {
+		return fmt.Sprintf("⚠️ %s %s Changes Detected", strings.ToUpper(toolType), domain)
+	} else {
+		return fmt.Sprintf("✅ %s %s Completed", strings.ToUpper(toolType), domain)
+	}
 }
 
 // getStderrFromError attempts to extract stderr output from exec.ExitError

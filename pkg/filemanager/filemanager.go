@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -394,23 +395,33 @@ func calculateTextDiff(oldText, newText string) string {
 	oldLines := strings.Split(oldText, "\n")
 	newLines := strings.Split(newText, "\n")
 
-	// Find added and removed lines
+	// Remove any trailing empty lines
+	for len(oldLines) > 0 && strings.TrimSpace(oldLines[len(oldLines)-1]) == "" {
+		oldLines = oldLines[:len(oldLines)-1]
+	}
+	for len(newLines) > 0 && strings.TrimSpace(newLines[len(newLines)-1]) == "" {
+		newLines = newLines[:len(newLines)-1]
+	}
+
+	// Find added, removed, and unchanged lines
 	addedLines := []string{}
 	removedLines := []string{}
+	unchangedLines := []string{}
 
 	// Create maps for faster lookup
-	oldMap := make(map[string]bool)
-	newMap := make(map[string]bool)
+	oldMap := make(map[string]int) // Line -> position
+	newMap := make(map[string]int)
 
-	for _, line := range oldLines {
+	// Index all lines by content for quick lookup
+	for i, line := range oldLines {
 		if strings.TrimSpace(line) != "" {
-			oldMap[line] = true
+			oldMap[line] = i
 		}
 	}
 
-	for _, line := range newLines {
+	for i, line := range newLines {
 		if strings.TrimSpace(line) != "" {
-			newMap[line] = true
+			newMap[line] = i
 		}
 	}
 
@@ -419,8 +430,10 @@ func calculateTextDiff(oldText, newText string) string {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
-		if !newMap[line] {
+		if _, exists := newMap[line]; !exists {
 			removedLines = append(removedLines, line)
+		} else {
+			unchangedLines = append(unchangedLines, line)
 		}
 	}
 
@@ -429,36 +442,87 @@ func calculateTextDiff(oldText, newText string) string {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
-		if !oldMap[line] {
+		if _, exists := oldMap[line]; !exists {
 			addedLines = append(addedLines, line)
 		}
 	}
 
-	// Build the difference summary
+	// Build the difference summary with context
 	var diffBuilder strings.Builder
 
-	if len(addedLines) > 0 {
-		diffBuilder.WriteString("Added lines:\n")
-		for i, line := range addedLines {
-			if i < 10 { // Limit to first 10 lines for readability
-				diffBuilder.WriteString(fmt.Sprintf("+ %s\n", line))
+	// Add a header summarizing the changes
+	if len(addedLines) > 0 || len(removedLines) > 0 {
+		diffBuilder.WriteString(fmt.Sprintf("# Summary: %d line(s) added, %d line(s) removed\n\n", 
+			len(addedLines), len(removedLines)))
+	} else {
+		diffBuilder.WriteString("# Changes detected but no line additions/removals found\n")
+		diffBuilder.WriteString("# (Possible changes in formatting or whitespace)\n\n")
+	}
+
+	// Add removed lines with context
+	if len(removedLines) > 0 {
+		diffBuilder.WriteString("# Lines removed:\n")
+		for i, line := range removedLines {
+			if i < 15 { // Limit to first 15 lines for readability
+				// Try to find context (unchanged lines around this one)
+				linePos := oldMap[line]
+				
+				// Add a bit of context if possible
+				if linePos > 0 && linePos < len(oldLines)-1 {
+					contextBefore := oldLines[linePos-1]
+					if strings.TrimSpace(contextBefore) != "" && !containsLine(removedLines, contextBefore) {
+						diffBuilder.WriteString(fmt.Sprintf("  %s\n", contextBefore))
+					}
+				}
+				
+				diffBuilder.WriteString(fmt.Sprintf("- %s\n", line))
+				
+				// Add context after if possible
+				if linePos < len(oldLines)-1 {
+					contextAfter := oldLines[linePos+1]
+					if strings.TrimSpace(contextAfter) != "" && !containsLine(removedLines, contextAfter) {
+						diffBuilder.WriteString(fmt.Sprintf("  %s\n", contextAfter))
+					}
+				}
+				diffBuilder.WriteString("\n")
 			} else {
-				diffBuilder.WriteString(fmt.Sprintf("... and %d more added lines\n", len(addedLines)-10))
+				diffBuilder.WriteString(fmt.Sprintf("... and %d more removed lines\n\n", len(removedLines)-15))
 				break
 			}
 		}
 	}
 
-	if len(removedLines) > 0 {
-		if diffBuilder.Len() > 0 {
+	// Add added lines with context
+	if len(addedLines) > 0 {
+		if len(removedLines) > 0 {
 			diffBuilder.WriteString("\n")
 		}
-		diffBuilder.WriteString("Removed lines:\n")
-		for i, line := range removedLines {
-			if i < 10 { // Limit to first 10 lines for readability
-				diffBuilder.WriteString(fmt.Sprintf("- %s\n", line))
+		diffBuilder.WriteString("# Lines added:\n")
+		for i, line := range addedLines {
+			if i < 15 { // Limit to first 15 lines for readability
+				// Try to find context (unchanged lines around this one)
+				linePos := newMap[line]
+				
+				// Add a bit of context if possible
+				if linePos > 0 {
+					contextBefore := newLines[linePos-1]
+					if strings.TrimSpace(contextBefore) != "" && !containsLine(addedLines, contextBefore) {
+						diffBuilder.WriteString(fmt.Sprintf("  %s\n", contextBefore))
+					}
+				}
+				
+				diffBuilder.WriteString(fmt.Sprintf("+ %s\n", line))
+				
+				// Add context after if possible
+				if linePos < len(newLines)-1 {
+					contextAfter := newLines[linePos+1]
+					if strings.TrimSpace(contextAfter) != "" && !containsLine(addedLines, contextAfter) {
+						diffBuilder.WriteString(fmt.Sprintf("  %s\n", contextAfter))
+					}
+				}
+				diffBuilder.WriteString("\n")
 			} else {
-				diffBuilder.WriteString(fmt.Sprintf("... and %d more removed lines\n", len(removedLines)-10))
+				diffBuilder.WriteString(fmt.Sprintf("... and %d more added lines\n", len(addedLines)-15))
 				break
 			}
 		}
@@ -471,31 +535,218 @@ func calculateTextDiff(oldText, newText string) string {
 	return diffBuilder.String()
 }
 
+// containsLine checks if a line exists in a slice of lines
+func containsLine(lines []string, target string) bool {
+	for _, line := range lines {
+		if line == target {
+			return true
+		}
+	}
+	return false
+}
+
 // calculateJSONDiff calculates differences between JSON objects
 func calculateJSONDiff(oldScan, newScan ScanResult) DiffResult {
 	diffResult := DiffResult{
 		PreviousScan: oldScan.Timestamp,
 		CurrentScan:  newScan.Timestamp,
 		HasChanges:   false,
+		AddedItems:   make([]map[string]interface{}, 0),
+		RemovedItems: make([]map[string]interface{}, 0),
+		ModifiedItems: make([]map[string]interface{}, 0),
 	}
 
-	// This is a simplified version - in a real implementation,
-	// you would do a more thorough comparison of the JSON structures
+	// Get JSON representations
+	oldJSON, oldErr := json.Marshal(oldScan.Output)
+	newJSON, newErr := json.Marshal(newScan.Output)
 
-	// Get string representations of both outputs for simple comparison
-	oldJSON, _ := json.Marshal(oldScan.Output)
-	newJSON, _ := json.Marshal(newScan.Output)
+	// If we can't parse either as JSON, fall back to text comparison
+	if oldErr != nil || newErr != nil {
+		if string(oldJSON) != string(newJSON) {
+			diffResult.HasChanges = true
+			diffResult.DiffSummary = fmt.Sprintf("JSON parsing error, doing simple text comparison: %v / %v", 
+				oldErr, newErr)
+			return diffResult
+		}
+	}
 
-	if string(oldJSON) != string(newJSON) {
-		diffResult.HasChanges = true
+	if string(oldJSON) == string(newJSON) {
+		// No changes detected
+		return diffResult
+	}
 
-		// In a real implementation, you would parse the JSON and compare
-		// the structures more intelligently to identify added, modified, and
-		// removed items. For now, we'll just note that changes were detected.
-		diffResult.DiffSummary = "Changes detected in JSON structure. Detailed comparison not implemented yet."
+	// We have changes
+	diffResult.HasChanges = true
+
+	// Try to unmarshal both into comparable data structures
+	var oldData, newData interface{}
+	json.Unmarshal(oldJSON, &oldData)
+	json.Unmarshal(newJSON, &newData)
+
+	// Build a human-readable diff summary
+	var diffBuilder strings.Builder
+	
+	diffBuilder.WriteString("# JSON Difference Summary\n\n")
+
+	// Case 1: Both are objects (maps)
+	oldMap, oldIsMap := oldData.(map[string]interface{})
+	newMap, newIsMap := newData.(map[string]interface{})
+
+	if oldIsMap && newIsMap {
+		// Track what we've found
+		keysFound := make(map[string]bool)
+		
+		// Check for added and modified keys
+		diffBuilder.WriteString("## Object comparison\n\n")
+		
+		// First check for added and modified keys
+		for key, newVal := range newMap {
+			keysFound[key] = true
+			oldVal, exists := oldMap[key]
+			
+			if !exists {
+				// Added key
+				addedItem := map[string]interface{}{
+					"key": key,
+					"value": truncateJSONValue(newVal),
+				}
+				diffResult.AddedItems = append(diffResult.AddedItems, addedItem)
+				diffBuilder.WriteString(fmt.Sprintf("+ Added key: `%s` = `%s`\n", key, truncateJSONValue(newVal)))
+			} else if !reflect.DeepEqual(oldVal, newVal) {
+				// Modified key
+				modifiedItem := map[string]interface{}{
+					"key": key,
+					"old_value": truncateJSONValue(oldVal),
+					"new_value": truncateJSONValue(newVal),
+				}
+				diffResult.ModifiedItems = append(diffResult.ModifiedItems, modifiedItem)
+				diffBuilder.WriteString(fmt.Sprintf("* Modified key: `%s`\n", key))
+				diffBuilder.WriteString(fmt.Sprintf("  - Old: `%s`\n", truncateJSONValue(oldVal)))
+				diffBuilder.WriteString(fmt.Sprintf("  + New: `%s`\n", truncateJSONValue(newVal)))
+			}
+		}
+		
+		// Then check for removed keys
+		for key, oldVal := range oldMap {
+			if !keysFound[key] {
+				// Removed key
+				removedItem := map[string]interface{}{
+					"key": key,
+					"value": truncateJSONValue(oldVal),
+				}
+				diffResult.RemovedItems = append(diffResult.RemovedItems, removedItem)
+				diffBuilder.WriteString(fmt.Sprintf("- Removed key: `%s` = `%s`\n", key, truncateJSONValue(oldVal)))
+			}
+		}
+	} else if oldArr, oldIsArr := oldData.([]interface{}); oldIsArr {
+		newArr, newIsArr := newData.([]interface{})
+		if newIsArr {
+			// Case 2: Both are arrays
+			diffBuilder.WriteString(fmt.Sprintf("## Array comparison\n\n"))
+			diffBuilder.WriteString(fmt.Sprintf("* Array length: %d → %d\n\n", len(oldArr), len(newArr)))
+			
+			// Find common length for item-by-item comparison
+			minLen := len(oldArr)
+			if len(newArr) < minLen {
+				minLen = len(newArr)
+			}
+			
+			// Compare items that exist in both arrays
+			for i := 0; i < minLen; i++ {
+				if !reflect.DeepEqual(oldArr[i], newArr[i]) {
+					diffBuilder.WriteString(fmt.Sprintf("* Modified at index %d:\n", i))
+					diffBuilder.WriteString(fmt.Sprintf("  - Old: `%s`\n", truncateJSONValue(oldArr[i])))
+					diffBuilder.WriteString(fmt.Sprintf("  + New: `%s`\n\n", truncateJSONValue(newArr[i])))
+				}
+			}
+			
+			// List added items
+			if len(newArr) > len(oldArr) {
+				diffBuilder.WriteString("# Added items:\n")
+				for i := len(oldArr); i < len(newArr) && i < len(oldArr)+5; i++ {
+					addedItem := map[string]interface{}{
+						"index": i,
+						"value": truncateJSONValue(newArr[i]),
+					}
+					diffResult.AddedItems = append(diffResult.AddedItems, addedItem)
+					diffBuilder.WriteString(fmt.Sprintf("+ [%d]: `%s`\n", i, truncateJSONValue(newArr[i])))
+				}
+				if len(newArr) > len(oldArr)+5 {
+					diffBuilder.WriteString(fmt.Sprintf("+ ... and %d more added items\n\n", len(newArr)-len(oldArr)-5))
+				}
+			}
+			
+			// List removed items
+			if len(oldArr) > len(newArr) {
+				diffBuilder.WriteString("# Removed items:\n")
+				for i := len(newArr); i < len(oldArr) && i < len(newArr)+5; i++ {
+					removedItem := map[string]interface{}{
+						"index": i,
+						"value": truncateJSONValue(oldArr[i]),
+					}
+					diffResult.RemovedItems = append(diffResult.RemovedItems, removedItem)
+					diffBuilder.WriteString(fmt.Sprintf("- [%d]: `%s`\n", i, truncateJSONValue(oldArr[i])))
+				}
+				if len(oldArr) > len(newArr)+5 {
+					diffBuilder.WriteString(fmt.Sprintf("- ... and %d more removed items\n\n", len(oldArr)-len(newArr)-5))
+				}
+			}
+		} else {
+			// Case 3: Types don't match (array vs non-array)
+			diffBuilder.WriteString("## Type change\n")
+			diffBuilder.WriteString(fmt.Sprintf("* Changed from array to %T\n", newData))
+		}
+	} else {
+		// Case 4: Simple values or incomparable types
+		diffBuilder.WriteString("## Value change\n")
+		diffBuilder.WriteString(fmt.Sprintf("- Old value: `%s`\n", truncateString(fmt.Sprintf("%v", oldData), 150)))
+		diffBuilder.WriteString(fmt.Sprintf("+ New value: `%s`\n", truncateString(fmt.Sprintf("%v", newData), 150)))
+	}
+
+	// Save the diff summary
+	if diffBuilder.Len() > 0 {
+		diffResult.DiffSummary = diffBuilder.String()
+	} else {
+		diffResult.DiffSummary = "Changes detected but couldn't be analyzed in detail"
 	}
 
 	return diffResult
+}
+
+// truncateJSONValue returns a human-readable string for a JSON value, truncating if needed
+func truncateJSONValue(val interface{}) string {
+	switch v := val.(type) {
+	case string:
+		return truncateString(v, 100)
+	case []interface{}:
+		if len(v) > 3 {
+			return fmt.Sprintf("array[%d items]", len(v))
+		}
+		bytes, _ := json.Marshal(v)
+		str := string(bytes)
+		return truncateString(str, 100)
+	case map[string]interface{}:
+		keys := make([]string, 0, len(v))
+		for k := range v {
+			keys = append(keys, k)
+		}
+		if len(keys) > 3 {
+			return fmt.Sprintf("object{%d keys}", len(keys))
+		}
+		bytes, _ := json.Marshal(v)
+		str := string(bytes)
+		return truncateString(str, 100)
+	default:
+		return truncateString(fmt.Sprintf("%v", v), 100)
+	}
+}
+
+// truncateString cuts a string to the max length and adds ellipsis if needed
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen-3] + "..."
 }
 
 // GetPreviousScanResult retrieves the previous scan result for a domain

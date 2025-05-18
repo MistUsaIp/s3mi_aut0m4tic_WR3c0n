@@ -1,0 +1,6 @@
+{
+  "previous_scan": "2025-05-18T00:08:07.343793564+03:30",
+  "current_scan": "2025-05-18T13:44:17.303479296+03:30",
+  "has_changes": true,
+  "diff_summary": "# Summary: 5 line(s) added, 5 line(s) removed\n\n# Lines removed:\n- \r\u001b[2Kerror                   [Status: 500, Size: 73, Words: 1, Lines: 1, Duration: 169ms]\u001b[0m\n\n- \r\u001b[2K.                       [Status: 200, Size: 1247, Words: 99, Lines: 1, Duration: 172ms]\u001b[0m\n\n- \r\u001b[2Khealth                  [Status: 200, Size: 79, Words: 2, Lines: 1, Duration: 224ms]\u001b[0m\n\n- \r\u001b[2Kmetrics                 [Status: 200, Size: 1247, Words: 99, Lines: 1, Duration: 316ms]\u001b[0m\n\n- \r\u001b[2Khealthcheck             [Status: 200, Size: 79, Words: 2, Lines: 1, Duration: 175ms]\u001b[0m\n\n\n# Lines added:\n+ \r\u001b[2Kerror                   [Status: 500, Size: 73, Words: 1, Lines: 1, Duration: 220ms]\u001b[0m\n\n+ \r\u001b[2K.                       [Status: 200, Size: 1247, Words: 99, Lines: 1, Duration: 197ms]\u001b[0m\n\n+ \r\u001b[2Khealth                  [Status: 200, Size: 79, Words: 2, Lines: 1, Duration: 196ms]\u001b[0m\n\n+ \r\u001b[2Kmetrics                 [Status: 200, Size: 1247, Words: 99, Lines: 1, Duration: 197ms]\u001b[0m\n\n+ \r\u001b[2Khealthcheck             [Status: 200, Size: 79, Words: 2, Lines: 1, Duration: 201ms]\u001b[0m\n\n"
+}

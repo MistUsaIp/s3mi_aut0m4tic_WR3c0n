@@ -1,0 +1,9 @@
+{
+  "command": "x8 -u \"https://ote-cube.verisign.com/index.html\" -w params.wl --reflected-only",
+  "command_type": "x8",
+  "domain": "\"https_",
+  "scan_type": "endpoints",
+  "timestamp": "2025-05-17T21:50:03.642888654+03:30",
+  "output": "Raw output (non-JSON)",
+  "raw_output": "urls:         https://ote-cube.verisign.com/index.html\nmethods:      GET\nwordlist len: 6527\n\n\n"
+}

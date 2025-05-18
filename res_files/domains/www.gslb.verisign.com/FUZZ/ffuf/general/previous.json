@@ -1,0 +1,8 @@
+{
+  "command": "ffuf -u https://www.gslb.verisign.com/FUZZ -w fuzz.wl -mc all -fc 404,400,403 -fw 2",
+  "command_type": "ffuf",
+  "domain": "www.gslb.verisign.com/FUZZ",
+  "scan_type": "general",
+  "timestamp": "2025-05-18T20:41:28.963761393+03:30",
+  "output": "Raw output (non-JSON)"
+}

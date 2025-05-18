@@ -467,6 +467,12 @@ func (e *CommandExecutor) ExecuteCommand(ctx context.Context, cmd *models.Comman
 			cmd.DetermineScanType()
 		}
 
+		// VERY SPECIFIC LOGGING TO DEBUG UNUSUAL DIRECTORY NAMES
+		if strings.HasPrefix(cmd.Domain, "\"") || strings.HasSuffix(cmd.Domain, "\"") {
+			e.logger.Warnf("POTENTIAL QUOTED DOMAIN: Domain='%s', CommandType='%s', ScanType='%s', RawCmd='%s'", 
+				cmd.Domain, cmd.CommandType, cmd.ScanType, cmd.Raw)
+		}
+
 		storagePath, err := e.fileManager.SaveScanResult(
 			cmd.Domain,
 			cmd.CommandType,

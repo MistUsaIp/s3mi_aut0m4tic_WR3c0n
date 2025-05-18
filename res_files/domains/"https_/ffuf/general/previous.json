@@ -1,0 +1,9 @@
+{
+  "command": "ffuf -u \"https://a-root-servers-org.gslb.verisign.com/FUZZ\" -w fuzz.wl -mc all -fc 404,400,403",
+  "command_type": "ffuf",
+  "domain": "\"https_",
+  "scan_type": "general",
+  "timestamp": "2025-05-18T00:08:07.343793564+03:30",
+  "output": "Raw output (non-JSON)",
+  "raw_output": "\r\u001b[2Kerror                   [Status: 500, Size: 73, Words: 1, Lines: 1, Duration: 169ms]\u001b[0m\n\r\u001b[2K.                       [Status: 200, Size: 1247, Words: 99, Lines: 1, Duration: 172ms]\u001b[0m\n\r\u001b[2Khealth                  [Status: 200, Size: 79, Words: 2, Lines: 1, Duration: 224ms]\u001b[0m\n\r\u001b[2Kmetrics                 [Status: 200, Size: 1247, Words: 99, Lines: 1, Duration: 316ms]\u001b[0m\n\r\u001b[2Khealthcheck             [Status: 200, Size: 79, Words: 2, Lines: 1, Duration: 175ms]\u001b[0m\n"
+}
