@@ -1,0 +1,6 @@
+{
+  "previous_scan": "2025-05-18T22:08:58.745099897+03:30",
+  "current_scan": "2025-05-18T22:21:38.465986972Z",
+  "has_changes": true,
+  "diff_summary": "# Summary: 2 line(s) added, 2 line(s) removed\n\n# Lines removed:\n- \r\u001b[2K.                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 199ms]\u001b[0m\n\n- \r\u001b[2Khealth                  [Status: 200, Size: 192, Words: 36, Lines: 8, Duration: 199ms]\u001b[0m\n\n\n# Lines added:\n+ \r\u001b[2K.                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 34ms]\u001b[0m\n\n+ \r\u001b[2Khealth                  [Status: 200, Size: 192, Words: 36, Lines: 8, Duration: 26ms]\u001b[0m\n\n"
+}

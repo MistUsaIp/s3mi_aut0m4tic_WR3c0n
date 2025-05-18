@@ -1,0 +1,6 @@
+{
+  "previous_scan": "2025-05-18T22:23:23.071517241+03:30",
+  "current_scan": "2025-05-18T22:02:58.211829455Z",
+  "has_changes": true,
+  "diff_summary": "# Summary: 1 line(s) added, 1 line(s) removed\n\n# Lines removed:\n- wordlist len: 6527\n\n\n# Lines added:\n  methods:      GET\n+ wordlist len: 307740\n\n"
+}
