@@ -320,3 +320,37 @@ func getStderrFromError(err error) string {
 	}
 	return ""
 }
+
+// SendCompletionNotification sends a notification to Discord when all commands have finished
+func (d *DiscordNotifier) SendCompletionNotification(totalCommands int, changedCount int, errorsCount int) error {
+	if d.webhookURL == "" {
+		return fmt.Errorf("webhook URL not configured")
+	}
+
+	d.logger.Infof("Preparing completion notification for %d commands", totalCommands)
+
+	// Build the message content
+	var contentBuilder strings.Builder
+	
+	// Use a completion heading with emoji
+	contentBuilder.WriteString("## :white_check_mark: All Jobs Complete\n\n")
+	
+	// Statistics section
+	contentBuilder.WriteString("### :bar_chart: Execution Summary\n")
+	contentBuilder.WriteString(fmt.Sprintf(":ballot_box_with_check: **Total Commands:** %d\n", totalCommands))
+	contentBuilder.WriteString(fmt.Sprintf(":rotating_light: **Changed Results:** %d\n", changedCount))
+	contentBuilder.WriteString(fmt.Sprintf(":x: **Errors:** %d\n", errorsCount))
+	
+	// Timestamp
+	contentBuilder.WriteString(fmt.Sprintf("\n\n_Completed at: %s_", time.Now().Format("2006-01-02 15:04:05")))
+
+	d.logger.Debugf("Completion notification content prepared (%d chars)", contentBuilder.Len())
+
+	// Create the webhook message
+	message := DiscordMessage{
+		Username: "WatchTower Monitor",
+		Content:  contentBuilder.String(),
+	}
+
+	return d.sendWebhookMessage(message)
+}
