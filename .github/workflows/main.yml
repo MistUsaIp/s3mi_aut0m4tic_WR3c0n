@@ -36,7 +36,7 @@ jobs:
           curl -s https://raw.githubusercontent.com/PortSwigger/param-miner/refs/heads/master/resources/words > words.txt
           curl -s https://wordlists-cdn.assetnote.io/data/automated/httparchive_directories_1m_2024_05_28.txt > directories.txt
           curl -s https://raw.githubusercontent.com/PortSwigger/param-miner/refs/heads/master/resources/params > params2.wl
-          cat words.txt | sort -u > fuzz.wl
+          cat words.txt directories.txt | sort -u > fuzz.wl
           go build -o watchtower pkg/main/main.go
           cp watchtower ./../../
           ./watchtower --ffuf-cmds=ffuf_for_workflow.txt --x8-cmds=x8_for_workflow.txt -t 3 --discord-webhook=${{ secrets.DISCORD_TOKEN }}
