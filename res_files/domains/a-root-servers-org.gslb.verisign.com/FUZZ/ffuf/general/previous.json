@@ -3,7 +3,7 @@
   "command_type": "ffuf",
   "domain": "a-root-servers-org.gslb.verisign.com/FUZZ",
   "scan_type": "general",
-  "timestamp": "2025-05-19T01:26:43.52760563Z",
+  "timestamp": "2025-05-19T06:19:38.02598587Z",
   "output": "Raw output (non-JSON)",
-  "raw_output": "\r\u001b[2K.                       [Status: 200, Size: 1247, Words: 99, Lines: 1, Duration: 96ms]\u001b[0m\n\r\u001b[2Kerror                   [Status: 500, Size: 73, Words: 1, Lines: 1, Duration: 84ms]\u001b[0m\n\r\u001b[2Khealth                  [Status: 200, Size: 79, Words: 2, Lines: 1, Duration: 73ms]\u001b[0m\n\r\u001b[2Khealthcheck             [Status: 200, Size: 79, Words: 2, Lines: 1, Duration: 77ms]\u001b[0m\n\r\u001b[2Kmetrics                 [Status: 200, Size: 1247, Words: 99, Lines: 1, Duration: 78ms]\u001b[0m\n"
+  "raw_output": "\r\u001b[2K.                       [Status: 200, Size: 1247, Words: 99, Lines: 1, Duration: 75ms]\u001b[0m\n\r\u001b[2Kerror                   [Status: 500, Size: 73, Words: 1, Lines: 1, Duration: 79ms]\u001b[0m\n\r\u001b[2Khealth                  [Status: 200, Size: 79, Words: 2, Lines: 1, Duration: 78ms]\u001b[0m\n\r\u001b[2Khealthcheck             [Status: 200, Size: 79, Words: 2, Lines: 1, Duration: 82ms]\u001b[0m\n\r\u001b[2Kmetrics                 [Status: 200, Size: 1247, Words: 99, Lines: 1, Duration: 65ms]\u001b[0m\n"
 }

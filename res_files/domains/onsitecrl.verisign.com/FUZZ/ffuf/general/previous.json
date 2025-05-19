@@ -3,7 +3,7 @@
   "command_type": "ffuf",
   "domain": "onsitecrl.verisign.com/FUZZ",
   "scan_type": "general",
-  "timestamp": "2025-05-19T01:35:36.600735465Z",
+  "timestamp": "2025-05-19T07:11:22.64115918Z",
   "output": "Raw output (non-JSON)",
-  "raw_output": "\r\u001b[2K.cer                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 33ms]\u001b[0m\n\r\u001b[2K.crt                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 39ms]\u001b[0m\n"
+  "raw_output": "\r\u001b[2K.cer                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 44ms]\u001b[0m\n\r\u001b[2K.crt                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 52ms]\u001b[0m\n\r\u001b[2Kexecutable              [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 31ms]\u001b[0m\n"
 }
