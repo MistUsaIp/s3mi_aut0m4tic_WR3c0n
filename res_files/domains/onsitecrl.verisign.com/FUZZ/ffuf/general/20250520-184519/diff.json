@@ -1,0 +1,6 @@
+{
+  "previous_scan": "2025-05-19T13:07:50.486891991Z",
+  "current_scan": "2025-05-20T18:45:19.017652273Z",
+  "has_changes": true,
+  "diff_summary": "# Summary: 2 line(s) added, 5 line(s) removed\n\n# Lines removed:\n- \r\u001b[2K.cer                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 34ms]\u001b[0m\n\n- \r\u001b[2K.crt                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 44ms]\u001b[0m\n\n- \r\u001b[2Klinkbar                 [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 33ms]\u001b[0m\n\n- \r\u001b[2Klinkadmin               [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 33ms]\u001b[0m\n\n- \r\u001b[2Kportugues-ingles        [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 31ms]\u001b[0m\n\n\n# Lines added:\n+ \r\u001b[2Kimageresizer            [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 60ms]\u001b[0m\n\n+ \r\u001b[2Kiisstart                [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 60ms]\u001b[0m\n\n"
+}
