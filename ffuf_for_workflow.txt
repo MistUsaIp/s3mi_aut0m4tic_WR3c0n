@@ -5,7 +5,7 @@ ffuf -u https://ote-login-otp.verisign.com/FUZZ -w fuzz.wl -mc all -fc 404,400,4
 ffuf -u https://rirs.gslb.verisign.com/FUZZ -w fuzz.wl -mc all -fc 404,400,403
 ffuf -u https://smetrics.verisign.com/FUZZ -w fuzz.wl -mc all -fc 404,400,403
 ffuf -u https://ote-cube.verisign.com/FUZZ -w fuzz.wl -mc all -fc 404,400,403
-ffuf -u "http://onsitecrl.verisign.com/FUZZ" -w fuzz.wl -mc all -fc 404,400,403 -fw 1
+ffuf -u "http://onsitecrl.verisign.com/FUZZ" -w words.txt -mc all -fc 404,400,403 -fw 1
 
 
 
