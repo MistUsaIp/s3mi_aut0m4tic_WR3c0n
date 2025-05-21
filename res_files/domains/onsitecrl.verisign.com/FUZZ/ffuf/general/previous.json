@@ -1,9 +1,9 @@
 {
-  "command": "ffuf -u \"http://onsitecrl.verisign.com/FUZZ\" -w fuzz.wl -mc all -fc 404,400,403 -fw 1",
+  "command": "ffuf -u \"http://onsitecrl.verisign.com/FUZZ\" -w words.txt -mc all -fc 404,400,403 -fw 1",
   "command_type": "ffuf",
   "domain": "onsitecrl.verisign.com/FUZZ",
   "scan_type": "general",
-  "timestamp": "2025-05-19T13:07:50.486891991Z",
+  "timestamp": "2025-05-20T18:45:19.017652273Z",
   "output": "Raw output (non-JSON)",
-  "raw_output": "\r\u001b[2K.cer                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 34ms]\u001b[0m\n\r\u001b[2K.crt                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 44ms]\u001b[0m\n\r\u001b[2Klinkbar                 [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 33ms]\u001b[0m\n\r\u001b[2Klinkadmin               [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 33ms]\u001b[0m\n\r\u001b[2Kportugues-ingles        [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 31ms]\u001b[0m\n"
+  "raw_output": "\r\u001b[2Kimageresizer            [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 60ms]\u001b[0m\n\r\u001b[2Kiisstart                [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 60ms]\u001b[0m\n"
 }
