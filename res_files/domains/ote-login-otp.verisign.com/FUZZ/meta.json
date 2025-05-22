@@ -1,8 +1,8 @@
 {
   "domain": "ote-login-otp.verisign.com/FUZZ",
   "first_seen": "2025-05-16T17:24:29.022539857+03:30",
-  "last_scan": "2025-05-21T18:31:23.794850384Z",
-  "scan_count": 16,
+  "last_scan": "2025-05-22T01:16:54.90108732Z",
+  "scan_count": 17,
   "tools_used": [
     "ffuf"
   ],
