@@ -1,0 +1,6 @@
+{
+  "previous_scan": "2025-05-27T19:18:24.580791108Z",
+  "current_scan": "2025-05-28T02:27:31.516212954Z",
+  "has_changes": true,
+  "diff_summary": "# Summary: 2 line(s) added, 3 line(s) removed\n\n# Lines removed:\n- \r\u001b[2K.crt                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 41ms]\u001b[0m\n\n- \r\u001b[2K.cer                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 41ms]\u001b[0m\n\n- \r\u001b[2Kthanx                   [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 35ms]\u001b[0m\n\n\n# Lines added:\n+ \r\u001b[2K.crt                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 42ms]\u001b[0m\n\n+ \r\u001b[2K.cer                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 36ms]\u001b[0m\n\n"
+}
