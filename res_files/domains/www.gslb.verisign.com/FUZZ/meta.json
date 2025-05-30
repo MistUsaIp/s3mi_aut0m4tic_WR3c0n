@@ -1,8 +1,8 @@
 {
   "domain": "www.gslb.verisign.com/FUZZ",
   "first_seen": "2025-05-16T17:43:24.299214878+03:30",
-  "last_scan": "2025-05-30T12:56:13.05549624Z",
-  "scan_count": 51,
+  "last_scan": "2025-05-30T19:58:51.103917234Z",
+  "scan_count": 52,
   "tools_used": [
     "ffuf"
   ],
