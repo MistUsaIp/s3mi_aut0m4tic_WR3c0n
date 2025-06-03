@@ -1,0 +1,6 @@
+{
+  "previous_scan": "2025-06-02T18:28:53.115659481Z",
+  "current_scan": "2025-06-03T01:13:07.104648944Z",
+  "has_changes": true,
+  "diff_summary": "# Summary: 2 line(s) added, 2 line(s) removed\n\n# Lines removed:\n- \r\u001b[2K.                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 19ms]\u001b[0m\n\n- \r\u001b[2K/                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 19ms]\u001b[0m\n  \r\u001b[2K//                      [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 13ms]\u001b[0m\n\n\n# Lines added:\n+ \r\u001b[2K.                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 13ms]\u001b[0m\n\n+ \r\u001b[2K/                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 13ms]\u001b[0m\n  \r\u001b[2K//                      [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 13ms]\u001b[0m\n\n"
+}
