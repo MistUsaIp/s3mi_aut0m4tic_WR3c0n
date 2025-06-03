@@ -1,8 +1,8 @@
 {
   "domain": "a-root-servers-org.gslb.verisign.com/healthcheck",
   "first_seen": "2025-05-18T20:36:39.918016846+03:30",
-  "last_scan": "2025-06-03T12:41:44.575660377Z",
-  "scan_count": 62,
+  "last_scan": "2025-06-03T18:58:45.121285811Z",
+  "scan_count": 63,
   "tools_used": [
     "x8"
   ],
