@@ -3,7 +3,7 @@
   "command_type": "ffuf",
   "domain": "mem-lab.corparch.verisign.com/FUZZ",
   "scan_type": "general",
-  "timestamp": "2025-06-06T07:25:01.896902059Z",
+  "timestamp": "2025-06-06T12:51:48.09105791Z",
   "output": "Raw output (non-JSON)",
-  "raw_output": "\r\u001b[2K.                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 77ms]\u001b[0m\n\r\u001b[2K/                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 76ms]\u001b[0m\n\r\u001b[2K//                      [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 76ms]\u001b[0m\n\r\u001b[2K/health                 [Status: 200, Size: 193, Words: 36, Lines: 8, Duration: 77ms]\u001b[0m\n\r\u001b[2Khealth                  [Status: 200, Size: 193, Words: 36, Lines: 8, Duration: 86ms]\u001b[0m\n"
+  "raw_output": "\r\u001b[2K.                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 64ms]\u001b[0m\n\r\u001b[2K/                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 63ms]\u001b[0m\n\r\u001b[2K//                      [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 63ms]\u001b[0m\n\r\u001b[2K/health                 [Status: 200, Size: 193, Words: 36, Lines: 8, Duration: 64ms]\u001b[0m\n\r\u001b[2Khealth                  [Status: 200, Size: 193, Words: 36, Lines: 8, Duration: 68ms]\u001b[0m\n"
 }
