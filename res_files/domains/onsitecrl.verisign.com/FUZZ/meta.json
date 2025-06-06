@@ -1,14 +1,14 @@
 {
   "domain": "onsitecrl.verisign.com/FUZZ",
   "first_seen": "2025-05-18T21:44:17.132720744+03:30",
-  "last_scan": "2025-06-06T01:36:57.922552699Z",
-  "scan_count": 71,
+  "last_scan": "2025-06-06T07:56:00.048343193Z",
+  "scan_count": 72,
   "tools_used": [
     "ffuf"
   ],
   "scan_types": [
     "general"
   ],
-  "change_count": 70,
-  "last_changed": "2025-06-06T01:36:57.923053757Z"
+  "change_count": 71,
+  "last_changed": "2025-06-06T07:56:00.048917536Z"
 }
