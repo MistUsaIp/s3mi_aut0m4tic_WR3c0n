@@ -3,6 +3,6 @@
   "command_type": "ffuf",
   "domain": "www.gslb.verisign.com/FUZZ",
   "scan_type": "general",
-  "timestamp": "2025-06-06T13:34:02.170964362Z",
+  "timestamp": "2025-06-06T18:43:10.954552906Z",
   "output": "Raw output (non-JSON)"
 }

@@ -3,7 +3,7 @@
   "command_type": "x8",
   "domain": "a-root-servers-org.gslb.verisign.com/health",
   "scan_type": "endpoints",
-  "timestamp": "2025-06-06T13:03:54.058728736Z",
+  "timestamp": "2025-06-06T19:02:55.702436829Z",
   "output": "Raw output (non-JSON)",
   "raw_output": "urls:         https://a-root-servers-org.gslb.verisign.com/health\nmethods:      GET\nwordlist len: 307740\n\n\n"
 }
