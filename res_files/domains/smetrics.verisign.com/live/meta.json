@@ -1,8 +1,8 @@
 {
   "domain": "smetrics.verisign.com/live",
   "first_seen": "2025-05-16T17:19:44.743787589+03:30",
-  "last_scan": "2025-06-07T06:43:56.900691063Z",
-  "scan_count": 81,
+  "last_scan": "2025-06-07T12:45:53.686489634Z",
+  "scan_count": 82,
   "tools_used": [
     "x8"
   ],
