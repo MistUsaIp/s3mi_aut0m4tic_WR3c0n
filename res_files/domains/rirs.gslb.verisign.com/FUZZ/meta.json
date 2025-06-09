@@ -1,14 +1,14 @@
 {
   "domain": "rirs.gslb.verisign.com/FUZZ",
   "first_seen": "2025-05-16T17:39:09.003110175+03:30",
-  "last_scan": "2025-06-08T19:07:56.975360074Z",
-  "scan_count": 87,
+  "last_scan": "2025-06-09T01:20:36.026642849Z",
+  "scan_count": 88,
   "tools_used": [
     "ffuf"
   ],
   "scan_types": [
     "general"
   ],
-  "change_count": 86,
-  "last_changed": "2025-06-08T19:07:56.976995764Z"
+  "change_count": 87,
+  "last_changed": "2025-06-09T01:20:36.028681657Z"
 }
