@@ -3,7 +3,7 @@
   "command_type": "x8",
   "domain": "rirs.gslb.verisign.com/checkin",
   "scan_type": "endpoints",
-  "timestamp": "2025-06-11T13:12:57.162608529Z",
+  "timestamp": "2025-06-11T19:00:46.038465996Z",
   "output": "Raw output (non-JSON)",
   "raw_output": "urls:         https://rirs.gslb.verisign.com/checkin\nmethods:      GET\nwordlist len: 307740\n\n\n"
 }
