@@ -3,6 +3,6 @@
   "command_type": "ffuf",
   "domain": "ote-login-otp.verisign.com/FUZZ",
   "scan_type": "general",
-  "timestamp": "2025-06-14T12:26:50.427052425Z",
+  "timestamp": "2025-06-14T18:34:40.814897137Z",
   "output": "Raw output (non-JSON)"
 }
