@@ -1,8 +1,8 @@
 {
   "domain": "smetrics.verisign.com/optout",
   "first_seen": "2025-05-18T20:32:38.839351031+03:30",
-  "last_scan": "2025-06-20T06:37:36.903607542Z",
-  "scan_count": 256,
+  "last_scan": "2025-06-20T12:43:27.731008763Z",
+  "scan_count": 258,
   "tools_used": [
     "x8"
   ],
