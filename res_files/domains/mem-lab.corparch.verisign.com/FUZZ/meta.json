@@ -1,14 +1,14 @@
 {
   "domain": "mem-lab.corparch.verisign.com/FUZZ",
   "first_seen": "2025-05-16T17:30:43.978866069+03:30",
-  "last_scan": "2025-06-28T07:48:16.875601654Z",
-  "scan_count": 165,
+  "last_scan": "2025-06-28T12:35:50.283309975Z",
+  "scan_count": 166,
   "tools_used": [
     "ffuf"
   ],
   "scan_types": [
     "general"
   ],
-  "change_count": 164,
-  "last_changed": "2025-06-28T07:48:16.87610958Z"
+  "change_count": 165,
+  "last_changed": "2025-06-28T12:35:50.283859588Z"
 }
