@@ -1,14 +1,14 @@
 {
   "domain": "a-root-servers-org.gslb.verisign.com/FUZZ",
   "first_seen": "2025-05-18T20:36:10.432408327+03:30",
-  "last_scan": "2025-06-30T18:42:20.1109249Z",
-  "scan_count": 170,
+  "last_scan": "2025-07-01T01:17:50.889915825Z",
+  "scan_count": 171,
   "tools_used": [
     "ffuf"
   ],
   "scan_types": [
     "general"
   ],
-  "change_count": 169,
-  "last_changed": "2025-06-30T18:42:20.111596591Z"
+  "change_count": 170,
+  "last_changed": "2025-07-01T01:17:50.890828033Z"
 }
