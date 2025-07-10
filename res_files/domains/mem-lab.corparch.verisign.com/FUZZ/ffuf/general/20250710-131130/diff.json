@@ -1,0 +1,6 @@
+{
+  "previous_scan": "2025-07-10T06:30:51.734568028Z",
+  "current_scan": "2025-07-10T13:11:30.165569959Z",
+  "has_changes": true,
+  "diff_summary": "# Summary: 5 line(s) added, 5 line(s) removed\n\n# Lines removed:\n- \r\u001b[2K.                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 11ms]\u001b[0m\n\n- \r\u001b[2K/                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 11ms]\u001b[0m\n\n- \r\u001b[2K//                      [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 11ms]\u001b[0m\n\n- \r\u001b[2K/health                 [Status: 200, Size: 193, Words: 36, Lines: 8, Duration: 11ms]\u001b[0m\n\n- \r\u001b[2Khealth                  [Status: 200, Size: 193, Words: 36, Lines: 8, Duration: 11ms]\u001b[0m\n\n\n# Lines added:\n+ \r\u001b[2K.                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 42ms]\u001b[0m\n\n+ \r\u001b[2K/                       [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 41ms]\u001b[0m\n\n+ \r\u001b[2K//                      [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 41ms]\u001b[0m\n\n+ \r\u001b[2K/health                 [Status: 200, Size: 193, Words: 36, Lines: 8, Duration: 41ms]\u001b[0m\n\n+ \r\u001b[2Khealth                  [Status: 200, Size: 193, Words: 36, Lines: 8, Duration: 42ms]\u001b[0m\n\n"
+}
