@@ -1,0 +1,6 @@
+{
+  "previous_scan": "2025-07-15T01:38:08.408843121Z",
+  "current_scan": "2025-07-15T06:51:17.627754063Z",
+  "has_changes": true,
+  "diff_summary": "# Summary: 2 line(s) added, 6 line(s) removed\n\n# Lines removed:\n- \r\u001b[2K.crt                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 67ms]\u001b[0m\n\n- \r\u001b[2K.cer                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 66ms]\u001b[0m\n\n- \r\u001b[2Kvedio                   [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 62ms]\u001b[0m\n\n- \r\u001b[2Kyourbasket              [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 63ms]\u001b[0m\n\n- \r\u001b[2Kyoungliving             [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 63ms]\u001b[0m\n\n- \r\u001b[2Kzombaiogw_1_1           [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 63ms]\u001b[0m\n\n\n# Lines added:\n+ \r\u001b[2K.crt                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 69ms]\u001b[0m\n\n+ \r\u001b[2K.cer                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 67ms]\u001b[0m\n\n"
+}
