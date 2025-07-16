@@ -3,7 +3,7 @@
   "command_type": "x8",
   "domain": "smetrics.verisign.com/id",
   "scan_type": "endpoints",
-  "timestamp": "2025-07-16T07:15:41.815625365Z",
+  "timestamp": "2025-07-16T12:38:55.291327181Z",
   "output": "Raw output (non-JSON)",
   "raw_output": "urls:         https://smetrics.verisign.com/id\nmethods:      GET\nwordlist len: 307740\n\n\n"
 }
