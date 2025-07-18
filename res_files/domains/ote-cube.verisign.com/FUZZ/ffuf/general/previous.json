@@ -3,7 +3,7 @@
   "command_type": "ffuf",
   "domain": "ote-cube.verisign.com/FUZZ",
   "scan_type": "general",
-  "timestamp": "2025-07-17T18:22:48.667095631Z",
+  "timestamp": "2025-07-18T00:58:33.674302255Z",
   "output": "Raw output (non-JSON)",
-  "raw_output": "\r\u001b[2K.                       [Status: 200, Size: 2, Words: 2, Lines: 2, Duration: 9ms]\u001b[0m\n\r\u001b[2K/                       [Status: 200, Size: 2, Words: 2, Lines: 2, Duration: 7ms]\u001b[0m\n\r\u001b[2K//                      [Status: 200, Size: 2, Words: 2, Lines: 2, Duration: 7ms]\u001b[0m\n\r\u001b[2K/cube/2/sv_dRtGWXruWlRnUgWcXG [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 10ms]\u001b[0m\n\r\u001b[2K/cube/section           [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 10ms]\u001b[0m\n\r\u001b[2K/health/images/homepage [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 9ms]\u001b[0m\n\r\u001b[2K/health/resources/homepage/images [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 23ms]\u001b[0m\n"
+  "raw_output": "\r\u001b[2K.                       [Status: 200, Size: 2, Words: 2, Lines: 2, Duration: 13ms]\u001b[0m\n\r\u001b[2K/                       [Status: 200, Size: 2, Words: 2, Lines: 2, Duration: 13ms]\u001b[0m\n\r\u001b[2K//                      [Status: 200, Size: 2, Words: 2, Lines: 2, Duration: 11ms]\u001b[0m\n\r\u001b[2K/cube/section           [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 13ms]\u001b[0m\n\r\u001b[2K/cube/images/source     [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 14ms]\u001b[0m\n\r\u001b[2K/cube/cabinet/allitems56 [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 14ms]\u001b[0m\n\r\u001b[2K/cube/2/sv_dRtGWXruWlRnUgWcXG [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 13ms]\u001b[0m\n\r\u001b[2K/health/img             [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 13ms]\u001b[0m\n"
 }
