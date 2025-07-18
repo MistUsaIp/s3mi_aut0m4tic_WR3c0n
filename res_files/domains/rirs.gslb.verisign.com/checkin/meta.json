@@ -1,8 +1,8 @@
 {
   "domain": "rirs.gslb.verisign.com/checkin",
   "first_seen": "2025-05-18T20:29:59.510960032+03:30",
-  "last_scan": "2025-07-18T12:40:08.975390463Z",
-  "scan_count": 241,
+  "last_scan": "2025-07-18T18:36:46.824746559Z",
+  "scan_count": 242,
   "tools_used": [
     "x8"
   ],
