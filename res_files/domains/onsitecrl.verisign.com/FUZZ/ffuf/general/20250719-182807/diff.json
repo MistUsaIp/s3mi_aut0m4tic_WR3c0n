@@ -1,0 +1,6 @@
+{
+  "previous_scan": "2025-07-19T12:28:00.374452908Z",
+  "current_scan": "2025-07-19T18:28:07.095802999Z",
+  "has_changes": true,
+  "diff_summary": "# Summary: 0 line(s) added, 1 line(s) removed\n\n# Lines removed:\n- \r\u001b[2K.crt                    [Status: 502, Size: 18, Words: 4, Lines: 1, Duration: 61ms]\u001b[0m\n\n"
+}
