@@ -1,14 +1,14 @@
 {
   "domain": "ote-cube.verisign.com/FUZZ",
   "first_seen": "2025-05-16T17:42:44.338422622+03:30",
-  "last_scan": "2025-07-20T01:19:12.58925929Z",
-  "scan_count": 252,
+  "last_scan": "2025-07-20T07:58:04.608508646Z",
+  "scan_count": 253,
   "tools_used": [
     "ffuf"
   ],
   "scan_types": [
     "general"
   ],
-  "change_count": 251,
-  "last_changed": "2025-07-20T01:19:12.589837341Z"
+  "change_count": 252,
+  "last_changed": "2025-07-20T07:58:04.609100019Z"
 }
