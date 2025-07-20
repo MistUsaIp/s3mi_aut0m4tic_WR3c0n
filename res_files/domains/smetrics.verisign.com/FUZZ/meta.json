@@ -1,14 +1,14 @@
 {
   "domain": "smetrics.verisign.com/FUZZ",
   "first_seen": "2025-05-16T17:16:47.020055448+03:30",
-  "last_scan": "2025-07-19T18:16:59.324937959Z",
-  "scan_count": 251,
+  "last_scan": "2025-07-20T01:17:21.774107829Z",
+  "scan_count": 252,
   "tools_used": [
     "ffuf"
   ],
   "scan_types": [
     "general"
   ],
-  "change_count": 250,
-  "last_changed": "2025-07-19T18:16:59.326067741Z"
+  "change_count": 251,
+  "last_changed": "2025-07-20T01:17:21.775499851Z"
 }
